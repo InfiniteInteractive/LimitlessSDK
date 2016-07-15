@@ -1,0 +1,16 @@
+/.svn
+/build
+/applications/SynchronizeVideo
+/applications/AvStreamSource
+/applications/CameraMan
+/applications/LimitlessStreamer
+/applications/MediaStreamer
+/applications/Processor
+/applications/StitchVideo
+/filters/AjaDevice
+/filters/DeckLink
+/filters/DirectorySource
+/filters/GPUStitcher
+/filters/ImageUpload
+/filters/PointGreyResearch
+/libraries/stitchlib

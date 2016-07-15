@@ -1,0 +1,39 @@
+<RCC>
+  <qresource prefix="qtResources">
+    <file>crop_24.png</file>
+    <file>crop_32.png</file>
+    <file>add_32.png</file>
+    <file>close_32.png</file>
+    <file>config_32.png</file>
+    <file>minus_32.png</file>
+    <file>plus_32.png</file>
+    <file>remove_32.png</file>
+    <file>settings_32.png</file>
+    <file>minus_48.png</file>
+    <file>plus_48.png</file>
+    <file>minus_24.png</file>
+    <file>plus_24.png</file>
+    <file>logo_92.png</file>
+    <file>add_24.png</file>
+    <file>add_48.png</file>
+    <file>calibrate.png</file>
+    <file>close_24.png</file>
+    <file>config_24.png</file>
+    <file>input.png</file>
+    <file>inputFilter.png</file>
+    <file>load.png</file>
+    <file>multipleInputs.png</file>
+    <file>output.png</file>
+    <file>outputFilter.png</file>
+    <file>panoramic.png</file>
+    <file>remove_24.png</file>
+    <file>remove_48.png</file>
+    <file>save.png</file>
+    <file>settings.png</file>
+    <file>settings_24.png</file>
+    <file>multipleInputs.png</file>
+    <file>panoramaIconOrg.png</file>
+    <file>logo_icon_48.png</file>
+    <file>logo.png</file>
+  </qresource>
+</RCC>

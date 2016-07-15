@@ -1,0 +1,8 @@
+<RCC>
+  <qresource prefix="QtComponents">
+    <file>Resources/checkbox.png</file>
+    <file>Resources/down_arrow.png</file>
+    <file>Resources/logo_icon_48.png</file>
+    <file>Resources/handle.png</file>
+  </qresource>
+</RCC>
