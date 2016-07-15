@@ -7,7 +7,7 @@ Media Processing Framework built with dependence on C++11.. Design is based on G
 * Windows only (for the moment)
 
 
-##The Framework is split across several Dlls.
+##The Framework is split across several libraries.
 
 * _sdk/Base_ - provides basics for the plugin system, attribute system, serializer/un, logger, etc...
 * _sdk/Media_ - provides the media plugin system, basic media sample, plugin factory, clock, and OpenGl/OpenCL support
@@ -108,3 +108,23 @@ Past the above you need to provide some function overrides to communicate with t
 * _onLinkFormatChanged_ - notification of the format selected between this plugin and either upstream or down stream plugins
 * _onReady, onPlay, onPause_ -  notification of state changes
 * _processSample_ - sample provided by pipeline for plugin to process
+
+
+##Buidling the frame work
+Works Visual Studio 2015, requires [CMake](https://cmake.org/)
+
+You will need several libraries to build the frame work. (Hope to add CPM later to automatically get these)
+
+Required
+* _Glew_ [link](http://glew.sourceforge.net/)
+* _Boost 1.5X+_ [link](http://www.boost.org/)
+* _Glm_ [link](http://glm.g-truc.net/0.9.7/index.html)
+* _RapidJson_ [link](http://rapidjson.org/index.html)
+
+Optional (may require some work to turn off filters and libs that use it)
+* _Qt 5.X+_ - if using any of the filters or libraries using them [link](http://www.qt.io/developers/)
+* _Ffmpeg libs_ - if using the ffmpeg filter [link](http://ffmpeg.org/)
+* _fftw_ - if using medialib [link](http://www.fftw.org/)
+* _dlib_ - if using cvlib [link](http://dlib.net/)
+
+There is a batch file in the root dir vs2015x64_rebuild.bat, inside it are several vars that can be set to the directories where these libraries are. Once you set them you can run the bat file which will use CMake to create the VS solution files. Runnig vs2015x64.bat will build the VS solution file an automatically start VS with that solution.
