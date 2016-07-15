@@ -1,7 +1,7 @@
 Limitless SDK ![alt text](https://github.com/InfiniteInteractive/LimitlessSDK/blob/master/resources/logo_icon_48.png "Logo")
 ======
 
-Media Processing Framework built with dependance on modern C++. Design is based on GStreamer's documentation but does not follow it completely. _The framework is pretty rough at the moment and you will likely need help getting something functional. Currently only handles live image sources, audio is in the works._
+Media Processing Framework built with dependence on modern C++. Design is based on GStreamer's documentation but does not follow it completely. _The framework is pretty rough at the moment and you will likely need help getting something functional. Currently only handles live image sources, audio is in the works._
 
 ##The Framework is split across several Dlls.
 
