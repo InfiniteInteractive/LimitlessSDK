@@ -3,6 +3,10 @@ Limitless SDK ![alt text](https://github.com/InfiniteInteractive/LimitlessSDK/bl
 
 Media Processing Framework built with dependence on C++11.. Design is based on GStreamer's documentation but does not follow it completely. _The framework is pretty rough at the moment and you will likely need help getting something functional. Currently only handles live image sources, audio is in the works._
 
+###Platforms
+* Windows only (for the moment)
+
+
 ##The Framework is split across several Dlls.
 
 * _sdk/Base_ - provides basics for the plugin system, attribute system, serializer/un, logger, etc...
