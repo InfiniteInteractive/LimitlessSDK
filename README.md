@@ -110,7 +110,7 @@ Past the above you need to provide some function overrides to communicate with t
 * _processSample_ - sample provided by pipeline for plugin to process
 
 
-##Buidling the frame work
+##Building the frame work
 Works Visual Studio 2015, requires [CMake](https://cmake.org/)
 
 You will need several libraries to build the frame work. (Hope to add CPM later to automatically get these)
@@ -127,4 +127,4 @@ Optional (may require some work to turn off filters and libs that use it)
 * _fftw_ - if using medialib [link](http://www.fftw.org/)
 * _dlib_ - if using cvlib [link](http://dlib.net/)
 
-There is a batch file in the root dir vs2015x64_rebuild.bat, inside it are several vars that can be set to the directories where these libraries are. Once you set them you can run the bat file which will use CMake to create the VS solution files. Runnig vs2015x64.bat will build the VS solution file an automatically start VS with that solution.
+There is a batch file in the root dir vs2015x64_rebuild.bat, inside it are several vars that can be set to the directories where these libraries are. Once you set them you can run the bat file which will use CMake to create the VS solution files. Running vs2015x64.bat will build the VS solution file an automatically start VS with that solution.
