@@ -182,7 +182,7 @@ void FMLEProfile::write(std::string filePath)
 	root.put_child("output", output);
 	propertyTree.put_child("flashmedialiveencoder_proile", root);
 
-	boost::property_tree::xml_writer_settings<char> settings(' ', 4, "UTF-16");
+	boost::property_tree::xml_writer_settings<std::string> settings(' ', 4, "UTF-16");
 	boost::property_tree::write_xml(filePath, propertyTree, std::locale(), settings);
 }
 

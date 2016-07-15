@@ -5,6 +5,7 @@
 
 project(DebugApp)
 
+set(CMAKE_AUTOMOC ON)
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
 
@@ -39,6 +40,9 @@ link_directories(${LIBRARY_OUTPUT_PATH})
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
 
+include_directories(${GLEW_INCLUDE_DIRS})
+include_directories(${OPENGL_EX_INCLUDE_DIR})
+
 include_directories(${OPENCL_INCLUDE_DIRS})
 link_directories(${OPENCL_LIB_DIR})
 
@@ -65,9 +69,8 @@ add_dependencies(DebugApp Utilities)
 add_dependencies(DebugApp AvStream)
 
 #filter dependencies
-add_dependencies(DebugApp AvStreamOutput)
 add_dependencies(DebugApp ControlStructures)
-add_dependencies(DebugApp GPUStitcher)
+add_dependencies(DebugApp ffmpeg)
 add_dependencies(DebugApp ImageViewer)
 
 create_target_launcher(DebugApp

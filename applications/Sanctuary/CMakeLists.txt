@@ -5,6 +5,7 @@
 
 project(Sanctuary)
 
+set(CMAKE_AUTOMOC ON)
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
 
@@ -62,13 +63,14 @@ add_dependencies(Sanctuary MediaQt)
 add_dependencies(Sanctuary Utilities)
 
 #filter dependencies
-add_dependencies(Sanctuary AvStreamOutput)
+#add_dependencies(Sanctuary AvStreamOutput)
 add_dependencies(Sanctuary ControlStructures)
 add_dependencies(Sanctuary ffmpeg)
+add_dependencies(Sanctuary ImageFilters)
 add_dependencies(Sanctuary ImageViewer)
 
 create_target_launcher(Sanctuary
-	RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS}
+	RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS} ${Boost_LIBRARY_DIRS} "${AJASDK_LIB_DIR}" ${QT5_PULGIN_DIR} ${QT5_PULGIN_DIR}/platforms
 	WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin/debug"
 )
 

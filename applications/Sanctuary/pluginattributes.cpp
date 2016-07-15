@@ -87,19 +87,19 @@ void PluginAttributes::updateFilterAttribtes(SharedMediaFilter filter)
 		ui.filterAttributes->setItem(row, 0, new QTableWidgetItem(QString::fromStdString(pair.first)));
 		switch(attribute->type())
 		{
-		case Attribute::BOOL:
+		case Limitless::Type::BOOL:
 			ui.filterAttributes->setItem(row, 1, new QTableWidgetItem(attribute->toBool()?QString("true"):QString("false")));
 			break;
-		case Attribute::INT:
+		case Limitless::Type::INT:
 			ui.filterAttributes->setItem(row, 1, new QTableWidgetItem(QString::fromStdString(attribute->toString())));
 			break;
-		case Attribute::FLOAT:
+		case Limitless::Type::FLOAT:
 			ui.filterAttributes->setItem(row, 1, new QTableWidgetItem(QString::fromStdString(attribute->toString())));
 			break;
-		case Attribute::STRING:
+		case Limitless::Type::STRING:
 			ui.filterAttributes->setItem(row, 1, new QTableWidgetItem(QString::fromStdString(attribute->toString())));
 			break;
-		case Attribute::STRING_ENUM:
+		case Limitless::Type::STRING_ENUM:
 			ui.filterAttributes->setItem(row, 1, new QTableWidgetItem(QString::fromStdString(attribute->toString())));
 			break;
 		}

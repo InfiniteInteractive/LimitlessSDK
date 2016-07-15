@@ -1,1 +1,0 @@
-call vs2013x64.bat
