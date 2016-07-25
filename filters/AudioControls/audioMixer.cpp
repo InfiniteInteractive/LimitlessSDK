@@ -1,7 +1,7 @@
 #include "AudioMixer.h"
 #include "AudioMixerView.h"
 
-#include "Base/QtPluginView.h"
+#include "QtComponents/QtPluginView.h"
 #include "Media/MediaPad.h"
 #include "Media/IAudioSample.h"
 
@@ -35,7 +35,7 @@ SharedPluginView AudioMixer::getView()
 
 	if(m_view == SharedPluginView())
 	{
-		m_AudioMixerView=new AudioMixerView();
+		m_AudioMixerView=new AudioMixerView(this);
 
 		m_view.reset(new QtPluginView(m_AudioMixerView));
 	}

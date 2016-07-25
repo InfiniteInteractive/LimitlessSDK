@@ -8,6 +8,16 @@ project(AvStreamOutput)
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
 
+#direcshow
+set(DIRECTSHOW_DIR $ENV{DIRECTSHOW_DIR})
+set(DIRECTSHOW_BASECLASSES_INCLUDE_DIR ${DIRECTSHOW_DIR}/baseclasses/)
+set(DIRECTSHOW_COMMON_INCLUDES_DIR ${DIRECTSHOW_DIR}/common/)
+if(BUILD_x64)
+	set(DIRECTSHOW_LIB_PATH ${DIRECTSHOW_DIR}/lib/x64)
+else(BUILD_x64)
+	set(DIRECTSHOW_LIB_PATH ${DIRECTSHOW_DIR}/lib/)
+endif(BUILD_x64)
+
 set(AvStreamOutput_Sources
 	AvStreamOutput.cpp
 	FMLEControl.cpp
@@ -28,16 +38,13 @@ set(AvStreamOutput_Libraries
 	AvStream.lib
 #	optimized DirectShowBases.lib
 #	debug DirectShowBasesd.lib
-	$<$<CONFIG:Release>:${CMAKE_SOURCE_DIR}/libraries/DirectShow/baseclasses/release/strmbase.lib>
-	$<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/libraries/DirectShow/baseclasses/debug/strmbasd.lib>
+	$<$<CONFIG:Release>:${DIRECTSHOW_LIB_PATH}/strmbase.lib>
+	$<$<CONFIG:Debug>:${DIRECTSHOW_LIB_PATH}/strmbasd.lib>
 	strmiids.lib
 )
 
 include_directories(${SDK_INCLUDES})
 link_directories(${LIBRARY_OUTPUT_PATH})
-
-#include_directories(${CMAKE_SOURCE_DIR}/libraries/DirectShow)
-#link_directories(${CMAKE_SOURCE_DIR}/libraries/DirectShowBases/lib)
 
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})

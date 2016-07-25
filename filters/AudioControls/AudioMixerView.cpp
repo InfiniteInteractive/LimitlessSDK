@@ -43,12 +43,12 @@ void AudioMixerView::onUpdateInputOutput()
 
 void AudioMixerView::on_addInput_clicked(bool checked)
 {
-	m_audioMixer->addInput();
+//	m_audioMixer->addInput();
 }
 
 void AudioMixerView::on_addOutput_clicked(bool checked)
 {
-	m_audioMixer->addOutput();
+//	m_audioMixer->addOutput();
 }
 
 void AudioMixerView::processSample(Limitless::SharedIAudioSample sample)

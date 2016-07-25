@@ -1,7 +1,7 @@
 #include "audioMeter.h"
 #include "AudioMeterView.h"
 
-#include "Base/QtPluginView.h"
+#include "QtComponents/QtPluginView.h"
 #include "Media/MediaPad.h"
 #include "Media/IAudioSample.h"
 

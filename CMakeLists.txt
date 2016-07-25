@@ -88,15 +88,6 @@ message(status "*Include Dir: ${GLM_INCLUDE_DIRS}")
 #rapidjson
 find_package(rapidjson)
 
-#direcshow
-set(DIRECTSHOW_BASECLASSES_INCLUDE_DIR $ENV{DIRECTSHOW_DIR}/baseclasses/)
-set(DIRECTSHOW_COMMON_INCLUDES_DIR $ENV{DIRECTSHOW_DIR}/common/)
-if(BUILD_x64)
-	set(DIRECTSHOW_LIB_PATH $ENV{DIRECTSHOW_DIR}/lib/x64)
-else(BUILD_x64)
-	set(DIRECTSHOW_LIB_PATH $ENV{DIRECTSHOW_DIR}/lib/)
-endif(BUILD_x64)
-
 set(TOPLEVEL_BINARY_DIR ${PROJECT_BINARY_DIR})
 
 #Set build directory

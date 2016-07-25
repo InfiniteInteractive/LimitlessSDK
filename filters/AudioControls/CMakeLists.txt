@@ -5,6 +5,7 @@
 
 project(AudioControls)
 
+set(CMAKE_AUTOMOC ON)
 find_package(Qt5OpenGL REQUIRED)
 find_package(GLM)
 find_package(GLEW)

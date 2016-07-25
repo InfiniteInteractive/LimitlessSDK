@@ -9,16 +9,21 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
 
+message(STATUS "prefix:${CMAKE_PREFIX_PATH}")
+find_package(PNG REQUIRED)
+
 set(ImageFilters_Sources
 	ColorConversion.cpp
 	MoveToCpu.cpp
 	MoveToGpu.cpp
+	Overlay.cpp
 )
 
 set(ImageFilters_Headers
 	ColorConversion.h
 	MoveToCpu.h
 	MoveToGpu.h
+	Overlay.h
 )
 
 set(ImageFilters_Libraries
