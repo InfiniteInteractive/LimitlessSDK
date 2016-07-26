@@ -450,6 +450,9 @@ void GPUContext::processTasks(std::unique_lock<std::mutex> &lock)
 	case GpuTask::CreateClImage:
 		threadCreateClImage(lock, gpuTask);
 		break;
+    case GpuTask::GlFinish:
+        threadCreateClImage(lock, gpuTask);
+        break;
 	}
 }
 
@@ -587,7 +590,7 @@ void GPUContext::threadUploadTexture(std::unique_lock<std::mutex> &lock, GpuTask
 cl::ImageGL GPUContext::createClImage(cl_mem_flags flags, GLenum target, GLint internalFormat, GLsizei width, GLsizei height, GLenum format, GLenum type, GLuint &texture)
 {
 	CreateClImageTask task;
-
+        
 	task.flags=flags;
 	task.target=target;
 	task.internalFormat=internalFormat;

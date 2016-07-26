@@ -4,6 +4,12 @@
 
 using namespace Limitless;
 
+#define DEBUG_OWNER
+
+#ifdef DEBUG_OWNER
+#include <boost/format.hpp>
+#endif //DEBUG_OWNER
+
 GpuImageSample::GpuImageSample():
 m_flags(CL_MEM_READ_WRITE),
 m_width(0),
@@ -19,7 +25,7 @@ m_channels(channels),
 m_channelBits(channelBits),
 m_texture(0)
 {
-	resize(width, height);
+	resize(width, height, channels);
 }
 
 GpuImageSample::GpuImageSample(unsigned char *buffer, unsigned int width, unsigned int height, unsigned int channels, unsigned int channelBits):
@@ -30,8 +36,8 @@ m_texture(0)
 {
 	cl::Event event;
 
-	resize(width, height);
-	if(write(buffer, width, height, event))
+	resize(width, height, channels);
+	if(write(buffer, width, height, channels, event))
 		event.wait();
 }
 
@@ -55,7 +61,7 @@ unsigned char *GpuImageSample::buffer()
 	return m_hostBuffer.data();
 }
 
-bool GpuImageSample::resize(unsigned int width, unsigned int height, unsigned int channles, unsigned int channelBits)
+bool GpuImageSample::resize(unsigned int width, unsigned int height, unsigned int channels, unsigned int channelBits)
 {
 	cl_int error = CL_SUCCESS;
 
@@ -76,11 +82,41 @@ bool GpuImageSample::resize(unsigned int width, unsigned int height, unsigned in
 //	glBindTexture(GL_TEXTURE_2D, 0);
 //
 //	glFinish();
+	bool createTexture=false;
 
-	if(m_texture == 0)
-		m_texture=GPUContext::createTexture(GL_TEXTURE_2D, GL_RGBA8UI, width, height, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE);
+	if(m_texture==0)
+		createTexture=true;
+	else if(m_channels != channels)
+		createTexture=true;
+
+	if(createTexture)
+	{
+		GLuint format;
+
+		switch(channels)
+		{ 
+		case 1:
+			format=GL_R8UI;
+			break;
+		case 2:
+			format=GL_RG8UI;
+			break;
+		case 3:
+			format=GL_RGB8UI;
+			break;
+		case 4:
+		default:
+			format=GL_RGBA8UI;
+			break;
+		}
+		m_texture=GPUContext::createTexture(GL_TEXTURE_2D, format, width, height, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE);
+	}
 
 	m_image=cl::ImageGL(GPUContext::openCLContext(), m_flags, GL_TEXTURE_2D, 0, m_texture, &error);
+
+#ifdef DEBUG_OWNER
+    OutputDebugStringA((boost::format("GpuImageSample resize (%08x, %08x) Opengl\n")%m_texture%m_image()).str().c_str());
+#endif //DEBUG_OWNER
 
 	m_owned=OpenGl;
 //	m_image=GPUContext::createClImage(m_flags, GL_TEXTURE_2D, GL_RGBA8UI, width, height, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, m_texture);
@@ -95,7 +131,7 @@ bool GpuImageSample::resize(unsigned int width, unsigned int height, unsigned in
 
 	m_width=width;
 	m_height=height;
-	m_channels=4;
+	m_channels=channels;
 	m_size=m_width*m_height*4*sizeof(unsigned char);
 
 	return true;
@@ -119,18 +155,18 @@ bool GpuImageSample::save(std::string fileName)
 
 bool GpuImageSample::write(IImageSample *imageSample, cl::Event &event, std::vector<cl::Event> *events)
 {
-	return write(imageSample->buffer(), imageSample->width(), imageSample->height(), event, events);
+	return write(imageSample->buffer(), imageSample->width(), imageSample->height(), imageSample->channels(), event, events);
 }
 
-bool GpuImageSample::write(unsigned char *buffer, unsigned int width, unsigned int height, cl::Event &event, std::vector<cl::Event> *events)
+bool GpuImageSample::write(unsigned char *buffer, unsigned int width, unsigned int height, unsigned int channels, cl::Event &event, std::vector<cl::Event> *events)
 {
 	if(width <= 0)
 		return false;
 	if(height <= 0)
 		return false;
 
-	if((m_width != width) || (m_height != height))
-		resize(width, height);
+	if((m_width != width) || (m_height != height) || (m_channels != channels))
+		resize(width, height, channels);
 
 	cl_int status;
 	cl::size_t<3> origin;
@@ -287,6 +323,9 @@ bool GpuImageSample::acquireOpenCl(cl::Event &event, std::vector<cl::Event> *wai
 	glImages.push_back(m_image);
 	GPUContext::openCLCommandQueue().enqueueAcquireGLObjects(&glImages, waitEvents, &event);
 	m_owned=OpenCl;
+#ifdef DEBUG_OWNER
+    OutputDebugStringA((boost::format("GpuImageSample acquireOpenCl (%08x, %08x) OpenCl\n")%m_texture%m_image()).str().c_str());
+#endif //DEBUG_OWNER
 
 	return true;
 }
@@ -301,20 +340,29 @@ bool GpuImageSample::releaseOpenCl(cl::Event &event, std::vector<cl::Event> *wai
 	glImages.push_back(m_image);
 	GPUContext::openCLCommandQueue().enqueueReleaseGLObjects(&glImages, waitEvents, &event);
 	m_owned=OpenGl;
+#ifdef DEBUG_OWNER
+    OutputDebugStringA((boost::format("GpuImageSample releaseOpenCl (%08x, %08x) OpenGl\n")%m_texture%m_image()).str().c_str());
+#endif //DEBUG_OWNER
 
 	return true;
 }
 
 bool GpuImageSample::acquireOpenGl()
 {
+    bool released=false;
+
 	if(m_owned == OpenCl)
 	{
 		cl::Event event;
 
 		releaseOpenCl(event);
 		event.wait();
+        released=true;
 	}
 	m_owned=OpenGl;
+#ifdef DEBUG_OWNER
+    OutputDebugStringA((boost::format("GpuImageSample acquireOpenGl (%08x, %08x) OpenGl %d\n")%m_texture%m_image()%released).str().c_str());
+#endif //DEBUG_OWNER
 
 	return true;
 }

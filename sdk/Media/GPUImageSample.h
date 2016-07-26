@@ -34,7 +34,7 @@ public:
 	virtual bool save(std::string fileName);
 
 	bool write(IImageSample *imageSample, cl::Event &event, std::vector<cl::Event> *events=nullptr);
-	bool write(unsigned char *buffer, unsigned int width, unsigned int height, cl::Event &event, std::vector<cl::Event> *events=nullptr);
+	bool write(unsigned char *buffer, unsigned int width, unsigned int height, unsigned int channels, cl::Event &event, std::vector<cl::Event> *events=nullptr);
 	bool read(IImageSample *imageSample, cl::Event &event, std::vector<cl::Event> *events=nullptr);
 	bool read(unsigned char *buffer, unsigned int width, unsigned int height, cl::Event &event, std::vector<cl::Event> *events=nullptr);
 	bool copy(GpuImageSample *sample, cl::Event &event, std::vector<cl::Event> *waitEvents=nullptr);

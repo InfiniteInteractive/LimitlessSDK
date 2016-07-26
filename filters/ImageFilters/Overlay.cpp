@@ -10,6 +10,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/math/constants/constants.hpp>
 
+#include <png.h>
+
 using namespace Limitless;
 
 Overlay::Overlay(std::string name, Limitless::SharedMediaFilter parent):
@@ -25,24 +27,26 @@ Overlay::~Overlay()
 bool Overlay::initialize(const Attributes &attributes)
 {
 	m_imageSampleId=MediaSampleFactory::getTypeId("ImageSample");
-	m_gpuImageSampleId=MediaSampleFactory::getTypeId("GPUImageSample");
+	m_gpuImageSampleId=MediaSampleFactory::getTypeId("GpuImageSample");
 
     addAttribute("enable", m_enabled);
 	addAttribute("location", "");
 		
 	std::string sinkPadDescription;
 
+	sinkPadDescription="[";
 	sinkPadDescription+="{\"mime\":\"image/gpu\"}";
 	sinkPadDescription+=", {\"mime\":\"video/gpu\"}";
-	sinkPadDescription+="{\"mime\":\"image\"}";
-	sinkPadDescription+=", {\"mime\":\"video\"}";
+//	sinkPadDescription+=", {\"mime\":\"image\"}";
+//	sinkPadDescription+=", {\"mime\":\"video\"}";
 	sinkPadDescription+="]";
 
 	addSinkPad("Sink", sinkPadDescription);
-	addSinkPad("Source", sinkPadDescription);
+	addSourcePad("Source", sinkPadDescription);
 
 	m_openCLContext=GPUContext::openCLContext();
 	m_openCLComandQueue=GPUContext::openCLCommandQueue();
+	m_openCLDevice=GPUContext::openCLDevice();
 
     initOpenCl();
 	return true;
@@ -90,46 +94,160 @@ void Overlay::onAttributeChanged(std::string name, Limitless::SharedAttribute at
 
 void Overlay::loadImage(std::string location)
 {
+	m_overlayImage.reset(new Limitless::GpuImageSample());
+
+	FILE *file=fopen(location.c_str(), "rb");
+
+	if(!file)
+		return;
+
+	char header[8];
+	
+	fread(header, 1, 8, file);
+
+	if(png_sig_cmp((png_const_bytep)header, 0, 8))
+		return;
+
+	png_structp png_ptr;
+
+	/* initialize stuff */
+	png_ptr=png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+
+	if(!png_ptr)
+		return;
+
+	png_infop info_ptr;
+
+	info_ptr=png_create_info_struct(png_ptr);
+	if(!info_ptr)
+		return;
+
+	if(setjmp(png_jmpbuf(png_ptr)))
+		return;
+
+	int width, height;
+	png_byte color_type;
+	png_byte bit_depth;
+	int number_of_passes;
+	
+	png_init_io(png_ptr, file);
+	png_set_sig_bytes(png_ptr, 8);
+	png_read_info(png_ptr, info_ptr);
+
+	width=png_get_image_width(png_ptr, info_ptr);
+	height=png_get_image_height(png_ptr, info_ptr);
+	color_type=png_get_color_type(png_ptr, info_ptr);
+	bit_depth=png_get_bit_depth(png_ptr, info_ptr);
+
+	number_of_passes=png_set_interlace_handling(png_ptr);
+	png_read_update_info(png_ptr, info_ptr);
+
+	if(setjmp(png_jmpbuf(png_ptr)))
+		return;
+
+	int channels;
+
+	if(color_type==PNG_COLOR_TYPE_GRAY)
+		channels=1;
+	else if(color_type==PNG_COLOR_TYPE_GRAY_ALPHA)
+		channels=2;
+	else if(color_type==PNG_COLOR_TYPE_RGB)
+		channels=3;
+	else if(color_type==PNG_COLOR_TYPE_RGB_ALPHA)
+		channels=4;
+
+	std::vector<png_bytep> row_pointers(height);
+	std::vector<png_byte> imageData(width*height*channels);
+
+	m_overlayImage->resize(width, height, channels, bit_depth);
+		
+	size_t pos=0;
+	size_t stride=width*channels;
+
+	for(int y=0; y<height; y++)
+	{
+		row_pointers[y]=&imageData[pos];
+		pos+=stride;
+	}
+
+	png_read_image(png_ptr, row_pointers.data());
+
+	cl::Event event;
+
+	m_overlayImage->write((unsigned char *)imageData.data(), width, height, channels, event);
+	event.wait();
+
+	fclose(file);
+	
 }
 
 bool Overlay::processSample(Limitless::SharedMediaPad sinkPad, Limitless::SharedMediaSample sample)
 {
-	std::vector<ImageSample *> imageSamples;
-	std::vector<SharedGpuImageSample> gpuImageSamples;
-	std::vector<std::vector<cl::Event> > sampleEvents;
-	
+	if(!m_enabled)
+		pushSample(sample);
+
 	if(sample->isType(m_gpuImageSampleId))
 	{
         cl_int status;
-		SharedGpuImageSample gpuImageSample=boost::dynamic_pointer_cast<GpuImageSample>(sample);
+		cl_uint index=0;
+		Limitless::SharedGpuImageSample gpuImageSample=boost::dynamic_pointer_cast<GpuImageSample>(sample);
+		Limitless::SharedGpuImageSample dstSample=newSampleType<Limitless::GpuImageSample>(m_gpuImageSampleId);
 
+		dstSample->resize(gpuImageSample->width(), gpuImageSample->height(), gpuImageSample->channels());
 
-        status=m_kernel.setArg(0, gpuImageSample->glImage());
-        status=m_kernel.setArg(1, m_overlayImage->glImage());
+		cl_float xScale=(float)m_overlayImage->width()/gpuImageSample->width();
+		cl_float yScale=(float)m_overlayImage->height()/gpuImageSample->height();
+		
+		std::vector<Limitless::GpuImageSample *> images(3);
+		std::vector<cl::Event> imageAcquireEvent;
+		cl::Event kernelEvent;
 
+		images[0]=gpuImageSample.get();
+		images[1]=dstSample.get();
+		images[2]=m_overlayImage.get();
 
+        cl::Event event;
+		
+        if(Limitless::GpuImageSample::acquireMultipleOpenCl(images, event))
+            imageAcquireEvent.push_back(event);
+
+        status=m_kernel.setArg(index++, gpuImageSample->glImage());
+        status=m_kernel.setArg(index++, m_overlayImage->glImage());
+		status=m_kernel.setArg(index++, dstSample->glImage());
+		status=m_kernel.setArg(index++, xScale);
+		status=m_kernel.setArg(index++, yScale);
+		
         cl::NDRange globalThreads(gpuImageSample->width(), gpuImageSample->height());
 
-            status=m_openCLComandQueue.enqueueNDRangeKernel(m_kernel, cl::NullRange, globalThreads, cl::NullRange, &sampleEvents[i], &kernelEvents[i]);
-        }
-	}
-	else if(sample->isType(m_imageSampleId))
-	{
-		ImageSample *imageSample=dynamic_cast<ImageSample *>(sample.get());
+		status=m_openCLComandQueue.enqueueNDRangeKernel(m_kernel, cl::NullRange, globalThreads, cl::NullRange, &imageAcquireEvent, &kernelEvent);
 
-		imageSamples.push_back(imageSample);
+        if(status!=CL_SUCCESS)
+        {
+            assert(false);
+            return false;
+        }
+
+		kernelEvent.wait();
+
+		pushSample(dstSample);
+		return true;
 	}
+//	else if(sample->isType(m_imageSampleId))
+//	{
+//		ImageSample *imageSample=dynamic_cast<ImageSample *>(sample.get());
+//
+//		imageSamples.push_back(imageSample);
+//	}
 	
     pushSample(sample);
-
 	return true;
 }
 
 void Overlay::initOpenCl()
 {
-	extern std::string colorConversion_cl;
+	extern std::string overlay_cl;
 
-    cl::Program::Sources programSource(1, std::make_pair(colorConversion_cl.data(), colorConversion_cl.size()));
+    cl::Program::Sources programSource(1, std::make_pair(overlay_cl.data(), overlay_cl.size()));
     cl::Program program=cl::Program(m_openCLContext, programSource);
 
     cl_int error=CL_SUCCESS;
@@ -150,9 +268,7 @@ void Overlay::initOpenCl()
 		    OutputDebugStringA(" ************************************************\n");
 	    }
     }
-    std::string kernelName=getKernelName(m_fromFormat, m_toFormat);
-
-    m_kernel=cl::Kernel(program, kernelName.c_str());
+    m_kernel=cl::Kernel(program, "overlay");
 
     m_kernelWorkGroupSize=m_kernel.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(m_openCLDevice);
 

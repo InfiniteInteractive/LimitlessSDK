@@ -32,15 +32,18 @@ set(ImageFilters_Libraries
 	Base.lib
 	Media.lib
 	OpenCL.lib
+	${PNG_LIBRARY}
 	)
 
 
 include(EmbedFile)
 set(embedFiles
 	kernels/colorConversion.cl
+	kernels/overlay.cl
 )
 
-embed_files(embededFiles ${embedFiles})
+message(STATUS "ImageFilters embed: ${embedFiles}")
+embed_files(embededFiles "${embedFiles}")
 
 include_directories(${SDK_INCLUDES})
 link_directories(${LIBRARY_OUTPUT_PATH})
@@ -53,6 +56,8 @@ include_directories(${OPENGL_EX_INCLUDE_DIR})
 
 include_directories(${OPENCL_INCLUDE_DIRS})
 link_directories(${OPENCL_LIB_DIR})
+
+include_directories(${PNG_INCLUDE_DIR})
 
 add_library(ImageFilters SHARED
 	${ImageFilters_Sources}

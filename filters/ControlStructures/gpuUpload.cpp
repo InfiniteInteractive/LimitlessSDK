@@ -207,7 +207,8 @@ void GpuUpload::processUploadSamples()
 			SharedGpuImageSample gpuImageSample=boost::dynamic_pointer_cast<GpuImageSample>(newSample(m_gpuImageSampleId));
 			SharedIImageSample &imageSample=boost::dynamic_pointer_cast<IImageSample>(uploadTask.samples[i]);
 			
-			gpuImageSample->write(imageSample->buffer(), imageSample->width(), imageSample->height(), event);
+//			gpuImageSample->write(imageSample->buffer(), imageSample->width(), imageSample->height(), event);
+			gpuImageSample->write(imageSample.get(), event);
 			gpuSamples.push_back(gpuImageSample);
 
 			event.wait();

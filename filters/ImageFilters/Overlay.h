@@ -35,7 +35,7 @@ protected:
 
 private:
     void initOpenCl();
-    void loadImage(std::string location)
+	void loadImage(std::string location);
 
 	size_t m_imageSampleId;
 	size_t m_gpuImageSampleId;
@@ -51,6 +51,7 @@ private:
 	cl::Kernel m_kernel;
 
     bool m_enabled;
+	Limitless::SharedGpuImageSample m_overlayImage;
 };
 
 #endif //_Limitless_Overlay_h_

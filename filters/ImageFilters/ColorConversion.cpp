@@ -209,7 +209,8 @@ bool ColorConversion::processSample(Limitless::SharedMediaPad sinkPad, Limitless
 
 			std::vector<cl::Event> events(1);
 
-			gpuImageSample->write(imageSample->buffer(), imageSample->width(), imageSample->height(), events[0], nullptr);
+//			gpuImageSample->write(imageSample->buffer(), imageSample->width(), imageSample->height(), m_channels, events[0], nullptr);
+			gpuImageSample->write(imageSample, events[0], nullptr);
 			gpuImageSamples.push_back(gpuImageSample);
 			sampleEvents.push_back(events);
 

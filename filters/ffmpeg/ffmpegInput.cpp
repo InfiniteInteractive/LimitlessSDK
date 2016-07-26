@@ -141,6 +141,7 @@ void FfmpegInput::readThread()
 	m_readThreadRunning=true;
 	int avError;
 	
+    m_readThreadEvent.notify_all();
 	while(!m_stopReadThread)
 	{
 		lock.unlock();

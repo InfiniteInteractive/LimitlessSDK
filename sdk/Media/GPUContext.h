@@ -36,7 +36,8 @@ struct GpuTask
 		InitOpenCl,
 		CreateTexture,
 		UploadTexture,
-		CreateClImage
+		CreateClImage,
+        GlFinish
 	};
 
 	GpuTask(Task task):task(task){}
@@ -113,6 +114,12 @@ struct CreateClImageTask:GpuWaitTask
 	cl::ImageGL image;
 };
 
+struct GlFinishTask:GpuWaitTask
+{
+    GlFinishTask():GpuWaitTask(GpuTask::GlFinish) {}
+
+};
+
 typedef std::queue<GpuTask *> GpuTasks;
 
 typedef std::function<void()> DrawCallback;
@@ -144,6 +151,8 @@ public:
 	static GLuint createTexture(GLenum target, GLint internalFormat, GLsizei width, GLsizei height, GLenum format, GLenum type);
 	static void uploadTexture(GLuint texture, GLenum target, GLint internalFormat, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *data);
 	static cl::ImageGL createClImage(cl_mem_flags flags, GLenum target, GLint internalFormat, GLsizei width, GLsizei height, GLenum format, GLenum type, GLuint &texture);
+    
+    //static void glFinish();
 
 	static void addDrawCallback(SharedDrawCallback callback);
 	static void removeDrawCallback(SharedDrawCallback callback);
