@@ -5,6 +5,11 @@
 
 project(Media)
 
+include(AddPackage)
+
+add_package("opencl")
+add_package("glew" VERSION "2.0.0")
+
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
 
@@ -102,11 +107,13 @@ link_directories(${LIBRARY_OUTPUT_PATH})
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
 
+message(STATUS "GLEW include: ${GLEW_INCLUDE_DIRS}")
 include_directories(${GLEW_INCLUDE_DIRS})
 include_directories(${OPENGL_EX_INCLUDE_DIR})
 
+message(STATUS "OpenCl include: ${OPENCL_INCLUDE_DIRS}")
 include_directories(${OPENCL_INCLUDE_DIRS})
-link_directories(${OPENCL_LIB_DIR})
+#link_directories(${OPENCL_LIB_DIR})
 
 add_definitions(-DRAPIDJSON_HAS_STDSTRING)
 include_directories(${RAPIDJSON_INCLUDE_DIRS})
@@ -131,6 +138,7 @@ set_target_properties(Media PROPERTIES
 
 add_dependencies(Media Base)
 add_dependencies(Media Utilities)
+add_dependencies(Media ${OPENCL_TARGET})
 
 create_target_launcher(Media
 	RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS}

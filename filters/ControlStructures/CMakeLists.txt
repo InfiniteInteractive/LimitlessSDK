@@ -8,6 +8,11 @@ project(ControlStructures)
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
 
+include(AddPackage)
+
+add_package("opencl")
+add_package("glew" VERSION "2.0.0")
+
 set(ControlStructures_Sources
 	branch.cpp
 	combine.cpp
@@ -35,6 +40,7 @@ set(ControlStructures_Libraries
 	Base.lib
 	Media.lib
 	opengl32.lib
+	${GLEW_LIBRARIES}
 )
 
 include_directories(${SDK_INCLUDES})
@@ -47,7 +53,7 @@ include_directories(${GLEW_INCLUDE_DIRS})
 include_directories(${OPENGL_EX_INCLUDE_DIR})
 
 include_directories(${OPENCL_INCLUDE_DIRS})
-link_directories(${OPENCL_LIB_DIR})
+#link_directories(${OPENCL_LIB_DIR})
 
 add_library(ControlStructures SHARED
 	${ControlStructures_Sources}

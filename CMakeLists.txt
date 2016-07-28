@@ -26,11 +26,11 @@ find_package(Qt5Gui REQUIRED)
 set(QT5_PULGIN_DIR $ENV{QTDIR}/plugins)
 
 #find_package(Qt4 REQUIRED)
-find_package(OpenGl REQUIRED)
-message(STATUS "OpenGl dir:${OPENGL_INCLUDE_DIR}")
-find_package(GLEW REQUIRED)
-message(STATUS "Glew include dir:${GLEW_INCLUDE_DIRS}")
-message(STATUS "Glew libs:${GLEW_LIBRARIES}")
+#find_package(OpenGl REQUIRED)
+#message(STATUS "OpenGl dir:${OPENGL_INCLUDE_DIR}")
+#find_package(GLEW REQUIRED)
+#message(STATUS "Glew include dir:${GLEW_INCLUDE_DIRS}")
+#message(STATUS "Glew libs:${GLEW_LIBRARIES}")
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMakeModules)
 
@@ -74,19 +74,19 @@ message(status "*Include Dir: ${Boost_INCLUDE_DIR}")
 message(status "*Libraries Dir: ${Boost_LIBRARY_DIRS}")
 message(status "*Libraries: ${Boost_LIBRARIES}")
 
-set(OPENCL_ROOT $ENV{OPENCL_DIR})
-find_package(OpenCL)
-message(status "******OpenCl")
-message(status "*Include Dir: ${OPENCL_INCLUDE_DIRS}")
-message(status "*Libraries Dir: ${OPENCL_LIBRARIES}")
+#set(OPENCL_ROOT $ENV{OPENCL_DIR})
+#find_package(OpenCL)
+#message(status "******OpenCl")
+#message(status "*Include Dir: ${OPENCL_INCLUDE_DIRS}")
+#message(status "*Libraries Dir: ${OPENCL_LIBRARIES}")
 
-set(GLM_ROOT $ENV{GLM_DIR})
-find_package(GLM)
-message(status "******Glm")
-message(status "*Include Dir: ${GLM_INCLUDE_DIRS}")
+#set(GLM_ROOT $ENV{GLM_DIR})
+#find_package(GLM)
+#message(status "******Glm")
+#message(status "*Include Dir: ${GLM_INCLUDE_DIRS}")
 
 #rapidjson
-find_package(rapidjson)
+#find_package(rapidjson)
 
 set(TOPLEVEL_BINARY_DIR ${PROJECT_BINARY_DIR})
 
@@ -110,9 +110,9 @@ set(RUNTIME_LIBS
 
 include(CreateLaunchers)
 
-add_subdirectory(applications)
-add_subdirectory(filters)
+add_subdirectory(tools)
+add_subdirectory(sdk)
 add_subdirectory(libraries)
 #add_subdirectory(plugins)
-add_subdirectory(sdk)
-add_subdirectory(tools)
+add_subdirectory(filters)
+add_subdirectory(applications)

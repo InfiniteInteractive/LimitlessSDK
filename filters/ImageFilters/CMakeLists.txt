@@ -9,8 +9,15 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
 
-message(STATUS "prefix:${CMAKE_PREFIX_PATH}")
-find_package(PNG REQUIRED)
+#message(STATUS "prefix:${CMAKE_PREFIX_PATH}")
+#find_package(PNG REQUIRED)
+include(AddPackage)
+
+#add_package("zlib" VERSION "1.2.8")
+add_package("libpng" VERSION "1.6.23")
+add_package("opencl")
+add_package("glew" VERSION "2.0.0")
+
 
 set(ImageFilters_Sources
 	ColorConversion.cpp
@@ -31,8 +38,9 @@ set(ImageFilters_Libraries
 	Utilities.lib
 	Base.lib
 	Media.lib
-	OpenCL.lib
-	${PNG_LIBRARY}
+	${OPENCL_LIBRARIES}
+	${LIBPNG_LIBRARIES}
+	${GLEW_LIBRARIES}
 	)
 
 
@@ -57,7 +65,7 @@ include_directories(${OPENGL_EX_INCLUDE_DIR})
 include_directories(${OPENCL_INCLUDE_DIRS})
 link_directories(${OPENCL_LIB_DIR})
 
-include_directories(${PNG_INCLUDE_DIR})
+include_directories(${LIBPNG_INCLUDE_DIRS})
 
 add_library(ImageFilters SHARED
 	${ImageFilters_Sources}
@@ -75,6 +83,7 @@ set_target_properties(ImageFilters PROPERTIES
 add_dependencies(ImageFilters Utilities)
 add_dependencies(ImageFilters Base)
 add_dependencies(ImageFilters Media)
+add_dependencies(ImageFilters ${LIBPNG_TARGET})
 
 create_target_launcher(ImageFilters
 	RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS}

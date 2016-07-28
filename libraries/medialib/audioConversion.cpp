@@ -92,9 +92,9 @@ std::vector<uint8_t> toImage(AudioBuffer audioBuffer, size_t width, size_t heigh
 	std::vector<float> bufferVec;
 	uint8_t *buffer;
 
-	if(audioBuffer.getFormat() != AudioFormat::Float)
-		bufferVec
-	uint8_t *buffer=audioBuffer.getBuffer();
+//	if(audioBuffer.getFormat() != AudioFormat::Float)
+//		bufferVec
+//	uint8_t *buffer=audioBuffer.getBuffer();
 
 	data.resize(width*height);
 	for(size_t x=0; x<width; ++x)

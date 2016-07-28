@@ -39,7 +39,7 @@ struct ConvertSample
 template<typename _From, typename _To>
 struct ConvertSample<_From, _To, EnableIfDifferentAndSigned<_From, _To>>
 {
-    static _To value(const _From &sample) { return (_To)abs(sample-middle)/(middle); }
+    static _To value(const _From &sample) { return (_To)abs((float)sample-middle)/(middle); }
 
     static constexpr _From middle=(std::numeric_limits<_From>::max()-std::numeric_limits<_From>::min())/2;
 };
@@ -85,7 +85,7 @@ size_t convertAudioBuffer(const AudioBuffer &audioBufferFrom, AudioBuffer &audio
 	{
 		std::vector<uint32_t *> buffer;
 
-		buffer.push_back((uint16_t *)audioBufferTo.getBuffer());
+		buffer.push_back((uint32_t *)audioBufferTo.getBuffer());
 		return convert<_FromType>(audioBufferFrom, 0, audioBufferFrom.getSamples(), buffer, audioBufferTo.getSize());
 	}
 	break;
@@ -93,15 +93,15 @@ size_t convertAudioBuffer(const AudioBuffer &audioBufferFrom, AudioBuffer &audio
 	{
 		std::vector<uint8_t *> buffer;
 
-		buffer.push_back((uint16_t *)audioBufferTo.getBuffer());
+		buffer.push_back((uint8_t *)audioBufferTo.getBuffer());
 		return convert<_FromType>(audioBufferFrom, 0, audioBufferFrom.getSamples(), buffer, audioBufferTo.getSize());
 	}
 	break;
 	case AudioFormat::Double:
 	{
-		std::vector<uint8_t *> buffer;
+		std::vector<double *> buffer;
 
-		buffer.push_back((uint16_t *)audioBufferTo.getBuffer());
+		buffer.push_back((double *)audioBufferTo.getBuffer());
 		return convert<_FromType>(audioBufferFrom, 0, audioBufferFrom.getSamples(), buffer, audioBufferTo.getSize());
 	}
 	break;
@@ -109,13 +109,13 @@ size_t convertAudioBuffer(const AudioBuffer &audioBufferFrom, AudioBuffer &audio
 	{
 		std::vector<uint8_t *> buffer;
 
-		buffer.push_back((uint16_t *)audioBufferTo.getBuffer());
+		buffer.push_back((uint8_t *)audioBufferTo.getBuffer());
 		return convert<_FromType>(audioBufferFrom, 0, audioBufferFrom.getSamples(), buffer, audioBufferTo.getSize());
 	}
 	break;
 	case AudioFormat::Int16P:
 	{
-		std::vector<uint8_t *> buffer;
+		std::vector<uint16_t *> buffer;
 
 		buffer.push_back((uint16_t *)audioBufferTo.getBuffer());
 		return convert<_FromType>(audioBufferFrom, 0, audioBufferFrom.getSamples(), buffer, audioBufferTo.getSize());
@@ -123,25 +123,25 @@ size_t convertAudioBuffer(const AudioBuffer &audioBufferFrom, AudioBuffer &audio
 	break;
 	case AudioFormat::Int32P:
 	{
-		std::vector<uint8_t *> buffer;
+		std::vector<uint32_t *> buffer;
 
-		buffer.push_back((uint16_t *)audioBufferTo.getBuffer());
+		buffer.push_back((uint32_t *)audioBufferTo.getBuffer());
 		return convert<_FromType>(audioBufferFrom, 0, audioBufferFrom.getSamples(), buffer, audioBufferTo.getSize());
 	}
 	break;
 	case AudioFormat::FloatP:
 	{
-		std::vector<uint8_t *> buffer;
+		std::vector<float *> buffer;
 
-		buffer.push_back((uint16_t *)audioBufferTo.getBuffer());
+		buffer.push_back((float *)audioBufferTo.getBuffer());
 		return convert<_FromType>(audioBufferFrom, 0, audioBufferFrom.getSamples(), buffer, audioBufferTo.getSize());
 	}
 	break;
 	case AudioFormat::DoubleP:
 	{
-		std::vector<uint8_t *> buffer;
+		std::vector<double *> buffer;
 
-		buffer.push_back((uint16_t *)audioBufferTo.getBuffer());
+		buffer.push_back((double *)audioBufferTo.getBuffer());
 		return convert<_FromType>(audioBufferFrom, 0, audioBufferFrom.getSamples(), buffer, audioBufferTo.getSize());
 	}
 	break;
@@ -169,7 +169,7 @@ template<typename _From, typename _To> size_t convert(const AudioBuffer &audioBu
 
         for(size_t i=0; i<channels; ++i)
         {
-            float *buffer=buffers[i];
+            _To *buffer=buffers[i];
 
             for(size_t j=0; j<loopSize; ++j)
             {

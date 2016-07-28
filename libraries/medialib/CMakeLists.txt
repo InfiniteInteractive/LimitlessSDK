@@ -3,8 +3,13 @@ project(medialib)
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
 
-find_package(FFTW)
-find_package(dlib)
+include(AddPackage)
+
+add_package("fftw" VERSION "3.3.4")
+add_package("dlib" VERSION "19.0")
+
+#find_package(FFTW)
+#find_package(dlib)
 
 set(medialib_sources
 	audioBuffer.cpp
@@ -34,8 +39,8 @@ set(medialib_libraries
 	)
 
 include_directories(${LIBRARIES_PATH}/cvlib)
-include_directories(${FFTW_INCLUDES})
-include_directories(${DLIB_INCLUDES})
+include_directories(${FFTW_INCLUDE_DIRS})
+include_directories(${DLIB_INCLUDE_DIRS})
 
 message(STATUS "Lib output path:${LIBRARY_OUTPUT_PATH}")
 link_directories(${LIBRARY_OUTPUT_PATH})
@@ -54,3 +59,4 @@ create_target_launcher(medialib
 )
 
 add_dependencies(medialib cvlib)
+add_dependencies(medialib ${DLIB_TARGET})

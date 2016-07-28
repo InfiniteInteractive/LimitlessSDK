@@ -8,8 +8,12 @@ project(ImageViewer)
 set(CMAKE_AUTOMOC ON)
 
 find_package(Qt5OpenGL REQUIRED)
-find_package(GLM)
-find_package(GLEW)
+#find_package(GLM)
+#find_package(GLEW)
+include(AddPackage)
+
+add_package("glm" VERSION "0.9.7.6")
+add_package("glew" VERSION "2.0.0")
 
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
@@ -35,7 +39,6 @@ set(ImageViewer_Libraries
 	Utilities.lib
 	Base.lib
 	Media.lib
-	
 	${GLEW_LIBRARIES}
 )
 
@@ -56,7 +59,6 @@ include_directories(${OPENCL_INCLUDE_DIRS})
 link_directories(${OPENCL_LIB_DIR})
 
 include_directories(${GLEW_INCLUDE_DIRS})
-
 include_directories(${GLM_INCLUDE_DIRS})
 
 add_library(ImageViewer SHARED
@@ -76,6 +78,7 @@ add_dependencies(ImageViewer Utilities)
 add_dependencies(ImageViewer Base)
 add_dependencies(ImageViewer Media)
 add_dependencies(ImageViewer ControlStructures)
+add_dependencies(ImageViewer ${GLM_TARGET})
 
 create_target_launcher(ImageViewer
 	RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS}
@@ -83,3 +86,6 @@ create_target_launcher(ImageViewer
 )
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+message(STATUS "********GLEW bin dir: ${GLEW_BIN_DIRS}")
+set(ImageViewer_BIN_DIRS ${GLEW_BIN_DIRS} PARENT_SCOPE)

@@ -5,6 +5,10 @@
 
 project(Base)
 
+include(AddPackage)
+
+add_package("rapidjson" VERSION "v1.0.2" )
+
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
 
@@ -49,6 +53,7 @@ include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
 
 add_definitions(-DRAPIDJSON_HAS_STDSTRING)
+#include_directories(${RAPIDJSON_INCLUDE_DIRS})
 include_directories(${RAPIDJSON_INCLUDE_DIRS})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4800") #remove performance warnings
@@ -66,6 +71,7 @@ set_target_properties(Base PROPERTIES
 )
 
 #add_dependencies(Base Utilities)
+add_dependencies(Base ${RAPIDJSON_TARGET})
 
 create_target_launcher(Base
 	RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS}

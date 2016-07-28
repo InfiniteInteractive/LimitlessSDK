@@ -114,9 +114,9 @@ struct Limitless::JsonUnserializerHidden
 		buffer.resize(65536);
 		fileStream=new rapidjson::FileReadStream(jsonFile, buffer.data(), buffer.size());
 		
-		rapidjson::ParseResult result=document.ParseStream(*fileStream);
+		bool error=document.ParseStream(*fileStream).HasParseError();
 
-		if(!result)
+		if(error)
 			return false;
 
 		iteratorValid=false;
@@ -128,9 +128,9 @@ struct Limitless::JsonUnserializerHidden
 
     bool parse(std::string json)
     {
-        rapidjson::ParseResult result=document.Parse(json);
+        bool error=document.Parse(json.c_str()).HasParseError();
 
-        if(!result)
+        if(error)
             return false;
 
         iteratorValid=false;

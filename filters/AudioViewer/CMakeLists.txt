@@ -53,9 +53,8 @@ link_directories(${Boost_LIBRARY_DIRS})
 include_directories(${OPENCL_INCLUDE_DIRS})
 link_directories(${OPENCL_LIB_DIR})
 
-include_directories(${GLEW_INCLUDE_DIRS})
-
-include_directories(${GLM_INCLUDE_DIRS})
+#include_directories(${GLEW_INCLUDE_DIRS})
+#include_directories(${GLM_INCLUDE_DIRS})
 
 add_library(ImageViewer SHARED
 	${ImageViewer_Sources}
