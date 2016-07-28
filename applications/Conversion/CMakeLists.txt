@@ -61,7 +61,6 @@ add_dependencies(Conversion AvStream)
 #filter dependencies
 add_dependencies(Conversion AvStreamOutput)
 add_dependencies(Conversion ControlStructures)
-add_dependencies(Conversion PointGreyResearch)
 add_dependencies(Conversion ImageViewer)
 
 create_target_launcher(Conversion

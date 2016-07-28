@@ -91,3 +91,5 @@ create_target_launcher(ImageFilters
 )
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+set(ImageFilters_BIN_DIRS ${OPENCL_BIN_DIRS} ${GLEW_BIN_DIRS} ${ZLIB_BIN_DIRS} ${LIBPNG_BIN_DIRS} PARENT_SCOPE)
