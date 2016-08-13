@@ -1,7 +1,7 @@
 Limitless SDK ![alt text](https://github.com/InfiniteInteractive/LimitlessSDK/blob/master/resources/logo_icon_48.png "Logo")
 ======
 
-Media Processing Framework built with dependence on C++11.. Design is based on GStreamer's documentation but does not follow it completely. _The framework is pretty rough at the moment and you will likely need help getting something functional. Currently only handles live image sources, audio is in the works._
+Media Processing Framework built with dependence on C++11.. Design is based on GStreamer's documentation but does not follow it completely. _The framework is pretty rough at the moment and you will likely need help getting something functional. Currently only handles live image sources, audio is in the works. Don't pull unless you are wanting something to work on._
 
 ###Platforms
 * Windows only (for the moment)
@@ -113,18 +113,25 @@ Past the above you need to provide some function overrides to communicate with t
 ##Building the frame work
 Works Visual Studio 2015, requires [CMake](https://cmake.org/)
 
-You will need several libraries to build the frame work. (Hope to add CPM later to automatically get these)
+You will need several libraries to build the frame work. However some of these are handled by a CMake package handler and will be downloaded/compiled when cmake is executed. 
 
-Required
-* _Glew_ [link](http://glew.sourceforge.net/)
+Required (manual)
 * _Boost 1.5X+_ [link](http://www.boost.org/)
-* _Glm_ [link](http://glm.g-truc.net/0.9.7/index.html)
-* _RapidJson_ [link](http://rapidjson.org/index.html)
 
 Optional (may require some work to turn off filters and libs that use it)
 * _Qt 5.X+_ - if using any of the filters or libraries using them [link](http://www.qt.io/developers/)
 * _Ffmpeg libs_ - if using the ffmpeg filter [link](http://ffmpeg.org/)
-* _fftw_ - if using medialib [link](http://www.fftw.org/)
-* _dlib_ - if using cvlib [link](http://dlib.net/)
+ 
+Required (package manager)
+* _Glew_ 
+* _Glm_
+* _RapidJson_
+* _opencl_
+
+Optional (package manager)
+* _fftw_
+* _dlib_
+* _zlib_
+* _libpng_
 
 There is a batch file in the root dir vs2015x64_rebuild.bat, inside it are several vars that can be set to the directories where these libraries are. Once you set them you can run the bat file which will use CMake to create the VS solution files. Running vs2015x64.bat will build the VS solution file an automatically start VS with that solution.
