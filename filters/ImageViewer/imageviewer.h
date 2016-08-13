@@ -50,6 +50,7 @@ private:
 	Limitless::SharedPluginView m_view;
 	GlView *m_glView;
 
+	size_t m_imageSampleId;
 	size_t m_gpuImageSampleId;
 
 	std::queue<Limitless::MediaTime> m_timeStamps;

@@ -6,23 +6,10 @@
 #include "audioControls_global.h"
 
 #include "AudioMixerView.h"
+#include "AudioMixerInfo.h"
 
 #include <queue>
 
-struct OutputInfo
-{
-	Limitless::SharedMediaPad pad;
-};
-
-struct InputInfo
-{
-	std::string name;
-	Limitless::SharedMediaPad pad;
-
-	unsigned int sampleFrequency;
-
-	std::vector<OutputInfo> outputs;
-};
 
 class AudioControls_Export AudioMixer:public Limitless::MediaAutoRegister<AudioMixer, Limitless::IMediaFilter>
 {
@@ -37,6 +24,8 @@ public:
 
 	virtual bool processSample(Limitless::SharedMediaPad sinkPad, Limitless::SharedMediaSample sample);
 
+    MixInfo getInfo() { return m_mixInfo; }
+
 	void addSink();
 	void removeSink(Limitless::SharedMediaPad mediaPad);
 	void addSource();
@@ -48,14 +37,19 @@ protected:
 	virtual StateChange onPaused();
 	virtual StateChange onPlaying();
 
-	bool onAcceptMediaFormat(Limitless::SharedMediaPad pad, Limitless::SharedMediaFormat format);
-	void onLinkFormatChanged(Limitless::SharedMediaPad pad, Limitless::SharedMediaFormat format);
+	virtual bool onAcceptMediaFormat(Limitless::SharedMediaPad pad, Limitless::SharedMediaFormat format);
+	virtual void onLinkFormatChanged(Limitless::SharedMediaPad pad, Limitless::SharedMediaFormat format);
+    virtual void onLinked(Limitless::SharedMediaPad pad, Limitless::SharedMediaPad filterPad);
 
 private:
 	Limitless::SharedPluginView m_view;
-	AudioMixerView *m_AudioMixerView;
+	AudioMixerView *m_audioMixerView;
 
-	size_t m_iAudioSampleId;
+	size_t m_audioSampleId;
+
+    MixInfo m_mixInfo;
+    unsigned int m_sinkIndex;
+    unsigned int m_sourceIndex;
 };
 
 namespace Limitless{namespace traits

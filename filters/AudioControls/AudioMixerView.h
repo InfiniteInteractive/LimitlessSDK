@@ -7,10 +7,34 @@
 #include "Media/IAudioSample.h"
 #include "QtComponents/vuMeter.h"
 
+#include "AudioMixerInfo.h"
+#include "AudioMixerInputView.h"
+#include "AudioMixerOutputView.h"
+
 #include <limits>
 #include <cmath>
 
 class AudioMixer;
+
+struct OutputView
+{
+    Limitless::SharedMediaPad pad;
+    AudioMixerOutputView *outputView;
+};
+typedef std::shared_ptr<OutputView> SharedOutputView;
+typedef std::vector<SharedOutputView> OutputViews;
+
+struct InputView
+{
+	InputView(InputInfo &info) :inputInfo(info) {}
+
+    InputInfo inputInfo;
+
+    AudioMixerInputView *inputView;
+    OutputViews outputViews;
+};
+typedef std::shared_ptr<InputView> SharedInputView;
+typedef std::vector<SharedInputView> InputViews;
 
 class AudioMixerView : public QWidget
 {
@@ -22,13 +46,13 @@ public:
 
 	void processSample(Limitless::SharedIAudioSample sample);
 
-	void updateInputOutput();
+	void updateChannelMatrix();
 
 signals:
-	void updateInputOutputSignal();
+	void updateChannelMatrixSignal();
 
 public slots:
-	void onUpdateInputOutput();
+	void onUpdateChannelMatrix();
 	void on_addInput_clicked(bool checked);
 	void on_addOutput_clicked(bool checked);
 
@@ -38,6 +62,8 @@ private:
 	Ui::AudioMixerView ui;
 
 	AudioMixer *m_audioMixer;
+
+	InputViews m_inputViews;
 };
 
 #endif //_AudioMixerView_h_

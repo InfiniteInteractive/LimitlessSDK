@@ -19,7 +19,8 @@ public:
 	virtual ~ImageSample();
 
 //MediaSample
-	virtual unsigned char *buffer(){return m_buffer;}
+	virtual unsigned char *buffer() const{return m_buffer;}
+	virtual unsigned char *buffer() { return m_buffer; }
 	virtual size_t size() const{return m_size;}
 
 //IImageSample

@@ -264,7 +264,7 @@ bool FfmpegInput::processSample(SharedMediaPad sinkPad, SharedMediaSample sample
 	if(streamSample)
 	{
         if(!streamSample->isType(m_ffmpegPacketSampleId))
-            OutputDebugStringA((boost::format("****FFMpegInput push sample 0x%08x\n")%streamSample.get()).str().c_str());
+            Log::message("FfmpegInput", (boost::format("****FFMpegInput push sample 0x%08x\n")%streamSample.get()).str());
 //		OutputDebugStringA((boost::format("****FFMpegInput push sample 0x%08x\n")%streamSample.get()).str().c_str());
 		pushSample(sinkPad, streamSample);
 	}

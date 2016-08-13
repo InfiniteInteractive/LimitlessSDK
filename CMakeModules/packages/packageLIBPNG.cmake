@@ -10,4 +10,5 @@ add_git_package(${DEPENDENCY_PACKAGE_NAME} "https://github.com/glennrp/libpng.gi
 #set zlib as a dependency so it gets built as well
 add_dependencies(${DEPENDENCY_PACKAGE_FULLNAME} ${ZLIB_TARGET})
 
+set(${DEPENDENCY_PACKAGE_NAME}_BIN_DIRS ${DEPENDENCY_PACKAGE_INSTALL_DIR}/bin ${ZLIB_BIN_DIRS} PARENT_SCOPE)
 set(${DEPENDENCY_PACKAGE_NAME}_LIBRARIES ${DEPENDENCY_PACKAGE_INSTALL_DIR}/lib/libpng16d.lib PARENT_SCOPE)

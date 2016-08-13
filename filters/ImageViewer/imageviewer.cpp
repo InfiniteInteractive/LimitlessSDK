@@ -3,6 +3,7 @@
 #include "Media/MediaPad.h"
 
 #include "glView.h"
+#include "Media/ImageSample.h"
 
 #include <boost/foreach.hpp>
 
@@ -36,6 +37,7 @@ void ImageViewer::removeViewer(ImageViewer *imageViewer)
 
 bool ImageViewer::initialize(const Attributes &attributes)
 {
+	m_imageSampleId=MediaSampleFactory::getTypeId("ImageSample");
 	m_gpuImageSampleId=MediaSampleFactory::getTypeId("GpuImageSample");
 
 	addSinkPad("Sink", "[{\"mime\":\"video/raw\"}, {\"mime\":\"image/raw\"}, {\"mime\":\"image/gpu\"}]");
@@ -89,7 +91,25 @@ bool ImageViewer::processSample(SharedMediaPad sinkPad, SharedMediaSample sample
 //		m_timeStamps.pop();
 //		frameCount-=10;
 //	}
-	if(sample->isType(m_gpuImageSampleId))
+	if(sample->isType(m_imageSampleId))
+	{
+		SharedImageSample imageSample=boost::dynamic_pointer_cast<ImageSample>(sample);
+		SharedGpuImageSample openGLSample=newSampleType<GpuImageSample>(m_gpuImageSampleId);
+
+		cl::Event event;
+		std::vector<cl::Event> waitEvents;
+
+		openGLSample->write(imageSample.get(), event);
+		waitEvents.push_back(event);
+
+		openGLSample->releaseOpenCl(event, &waitEvents);
+
+		event.wait();
+
+		if(m_glView!=NULL)
+			m_glView->displaySample(openGLSample);
+	}
+	else if(sample->isType(m_gpuImageSampleId))
 	{
 		SharedGpuImageSample gpuImageSample=boost::dynamic_pointer_cast<GpuImageSample>(sample);
 		SharedGpuImageSample openGLSample=newSampleType<GpuImageSample>(m_gpuImageSampleId);

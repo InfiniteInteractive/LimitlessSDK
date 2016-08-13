@@ -127,11 +127,15 @@ public:
 
 	void processSample(Limitless::SharedIAudioSample sample);
 
+    void setVertical(bool vertical);
+
 signals:
 	void setMeterValues(std::vector<float> values);
+    void setVerticalMeters(bool value);
 
 public slots:
-void onMeterValues(std::vector<float> values);
+    void onMeterValues(std::vector<float> values);
+    void onVerticalMeter(bool value);
 
 private:
 	void initMeter(int channels);
@@ -140,6 +144,7 @@ private:
 
 	std::vector<Limitless::VuMeter *> m_vuMeters;
 	int m_channels;
+    bool m_verticalMeters;
 };
 
 #endif //_AudioMeterView_h_

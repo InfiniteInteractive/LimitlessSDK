@@ -2,11 +2,13 @@
 
 AudioMeterView::AudioMeterView(QWidget *parent):
 QWidget(parent),
-m_channels(0)
+m_channels(0),
+m_verticalMeters(true)
 {
 	ui.setupUi(this);
 
 	connect(this, SIGNAL(setMeterValues(std::vector<float>)), this, SLOT(onMeterValues(std::vector<float>)), Qt::QueuedConnection);
+    connect(this, SIGNAL(setVerticalMeters(bool)), this, SLOT(onVerticalMeter(bool)), Qt::QueuedConnection);
 }
 
 AudioMeterView::~AudioMeterView()
@@ -16,23 +18,53 @@ AudioMeterView::~AudioMeterView()
 
 void AudioMeterView::initMeter(int channels)
 {
-	QGridLayout *layout=new QGridLayout;
+	QGridLayout *layout=qobject_cast<QGridLayout *>(ui.audioMeters->layout());
+
+    if(layout==nullptr)
+        return;
+
+    while(QLayoutItem *item=layout->takeAt(0))
+    {
+        QSpacerItem *spacer=dynamic_cast<QSpacerItem *>(item);
+        
+        if(item!=nullptr)
+            delete spacer;
+        else
+        {
+            item->widget()->hide();
+            item->widget()->setParent(nullptr);
+        }
+    }
 
 	m_vuMeters.clear();
 	for(size_t i=0; i<channels; ++i)
 	{
 		Limitless::VuMeter *vuMeter=new Limitless::VuMeter(this);
-
+        
+        vuMeter->setVertical(m_verticalMeters);
 		m_vuMeters.push_back(vuMeter);
-		layout->addWidget(vuMeter, 0, i);
+
+        if(m_verticalMeters)
+		    layout->addWidget(vuMeter, 0, i);
+        else
+            layout->addWidget(vuMeter, i, 0);
 		vuMeter->show();
 	}
 
-	QSpacerItem *spacer=new QSpacerItem(10, 10, QSizePolicy::Minimum, QSizePolicy::Expanding);
+    if(m_verticalMeters)
+    {
+        QSpacerItem *spacer=new QSpacerItem(0, 10, QSizePolicy::Maximum, QSizePolicy::MinimumExpanding);
 
-	layout->addItem(spacer, 0, channels);
+        layout->addItem(spacer, 0, channels);
+    }
+    else
+    {
+        QSpacerItem *spacer=new QSpacerItem(10, 0, QSizePolicy::MinimumExpanding, QSizePolicy::Maximum);
 
-	ui.audioMeters->setLayout(layout);
+        layout->addItem(spacer, channels, 0);
+    }
+
+//	ui.audioMeters->setLayout(layout);
 	m_channels=channels;
 }
 
@@ -108,4 +140,20 @@ void AudioMeterView::processSample(Limitless::SharedIAudioSample sample)
 		emit(setMeterValues(audioAverages));
 //			m_vuMeters[i]->setValue(audioAverages[i]);
 	}
+}
+
+void AudioMeterView::setVertical(bool vertical)
+{
+    emit(setVerticalMeters(vertical));
+}
+
+void AudioMeterView::onVerticalMeter(bool value)
+{
+    m_verticalMeters=value;
+
+    initMeter(m_channels);
+    for(auto vuMeter:m_vuMeters)
+    {
+        vuMeter->setVertical(value);
+    }
 }

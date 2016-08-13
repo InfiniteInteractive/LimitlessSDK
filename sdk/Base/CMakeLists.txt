@@ -9,8 +9,11 @@ include(AddPackage)
 
 add_package("rapidjson" VERSION "v1.0.2" )
 
-#remove min and max macro declares from windows builds, causes issues with std::min/max
-add_definitions(-DNOMINMAX)
+if(WIN32)
+	#remove min and max macro declares from windows builds, causes issues with std::min/max
+	add_definitions(-DNOMINMAX)
+	add_definitions(-DWINDOWS)
+endif()
 
 set(Base_Sources
 	AttributeContainer.cpp

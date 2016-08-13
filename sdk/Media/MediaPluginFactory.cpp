@@ -124,6 +124,10 @@ void MediaPluginFactory::loadPlugins(std::string path)
 					NULL 
 				);
 	
+				std::string message((char *)lpMsgBuf);
+				std::string errorMessage="Failed to load "+iter->path().filename().string()+" error:"+message;
+
+				Log::message("MediaPluginFactory::loadPlugins", errorMessage);
 				OutputDebugString((LPCTSTR)lpMsgBuf);
 				LocalFree( lpMsgBuf );
 			}

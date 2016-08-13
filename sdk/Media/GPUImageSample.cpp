@@ -89,51 +89,64 @@ bool GpuImageSample::resize(unsigned int width, unsigned int height, unsigned in
 	else if(m_channels != channels)
 		createTexture=true;
 
-	if(createTexture)
-	{
-		GLuint format;
+    if(createTexture)
+    {
+        GLuint internalFormat;
+        GLuint format;
 
-		switch(channels)
-		{ 
-		case 1:
-			format=GL_R8UI;
-			break;
-		case 2:
-			format=GL_RG8UI;
-			break;
-		case 3:
-			format=GL_RGB8UI;
-			break;
-		case 4:
-		default:
-			format=GL_RGBA8UI;
-			break;
-		}
-		m_texture=GPUContext::createTexture(GL_TEXTURE_2D, format, width, height, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE);
-	}
-
-	m_image=cl::ImageGL(GPUContext::openCLContext(), m_flags, GL_TEXTURE_2D, 0, m_texture, &error);
+        switch(channels)
+        {
+        case 1:
+            internalFormat=GL_R8UI;
+            format=GL_RED_INTEGER;
+            break;
+        case 2:
+            internalFormat=GL_RG8UI;
+            format=GL_RG_INTEGER;
+            break;
+        case 3:
+            internalFormat=GL_RGB8UI;
+            format=GL_RGB_INTEGER;
+            break;
+        case 4:
+        default:
+            internalFormat=GL_RGBA8UI;
+            format=GL_RGBA_INTEGER;
+            break;
+        }
+        m_texture=GPUContext::createTexture(GL_TEXTURE_2D, internalFormat, width, height, format, GL_UNSIGNED_BYTE);
+        //	}
+        //
+        //    if(createTexture || (width!=m_width)||(height!=m_height))
+        //    {
+        m_image=cl::ImageGL(GPUContext::openCLContext(), m_flags, GL_TEXTURE_2D, 0, m_texture, &error);
 
 #ifdef DEBUG_OWNER
-    OutputDebugStringA((boost::format("GpuImageSample resize (%08x, %08x) Opengl\n")%m_texture%m_image()).str().c_str());
+        OutputDebugStringA((boost::format("GpuImageSample resize (%08x, %08x) Opengl\n")%m_texture%m_image()).str().c_str());
 #endif //DEBUG_OWNER
 
-	m_owned=OpenGl;
-//	m_image=GPUContext::createClImage(m_flags, GL_TEXTURE_2D, GL_RGBA8UI, width, height, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, m_texture);
+        m_owned=OpenGl;
+        //	m_image=GPUContext::createClImage(m_flags, GL_TEXTURE_2D, GL_RGBA8UI, width, height, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, m_texture);
 
-	if(error != CL_SUCCESS)
-	{
-		m_width=0;
-		m_height=0;
-		assert(false);
-		return false;
-	}
+        if(error!=CL_SUCCESS)
+        {
+            m_width=0;
+            m_height=0;
+            assert(false);
+            return false;
+        }
 
-	m_width=width;
-	m_height=height;
-	m_channels=channels;
-	m_size=m_width*m_height*4*sizeof(unsigned char);
+        m_channels=channels;
+    }
 
+    if((width!=m_width)||(height!=m_height))
+    {
+        m_width=width;
+        m_height=height;
+//        m_channels=channels;
+        m_size=m_width*m_height*m_channels*sizeof(unsigned char);
+    }
+    
 	return true;
 }
 
@@ -291,6 +304,15 @@ bool GpuImageSample::acquireMultipleOpenCl(std::vector<GpuImageSample *> samples
 		return false;
 
 	GPUContext::openCLCommandQueue().enqueueAcquireGLObjects(&glImages, waitEvents, &event);
+
+    for(size_t i=0; i<samples.size(); ++i)
+    {
+        GpuImageSample *sample=samples[i];
+
+        if(sample->m_owned!=OpenCl)
+            sample->m_owned=OpenCl;
+    }
+
 	return true;
 }
 
@@ -310,6 +332,15 @@ bool GpuImageSample::releaseMultipleOpenCl(std::vector<GpuImageSample *> samples
 		return false;
 
 	GPUContext::openCLCommandQueue().enqueueReleaseGLObjects(&glImages, waitEvents, &event);
+
+    for(size_t i=0; i<samples.size(); ++i)
+    {
+        GpuImageSample *sample=samples[i];
+
+        if(sample->m_owned==OpenCl)
+            sample->m_owned=OpenGl;
+    }
+
 	return true;
 }
 

@@ -3,29 +3,29 @@
 #	cmake_policy(SET CMP0020 NEW)
 #endif()
 
-project(ImageViewer)
+project(AudioViewer)
 
 find_package(Qt5OpenGL REQUIRED)
-find_package(GLM)
-find_package(GLEW)
+#find_package(GLM)
+#find_package(GLEW)
 
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
 
-set(ImageViewer_Sources
+set(AudioViewer_Sources
 	glview.cpp
 	glwidget.cpp
-	imageviewer.cpp
+	AudioViewer.cpp
 )
 
-set(ImageViewer_Headers
+set(AudioViewer_Headers
 	glview.h
 	glwidget.h
-	imageviewer.h
-	imageviewer_global.h
+	AudioViewer.h
+	AudioViewer_global.h
 )
 
-set(ImageViewer_Libraries
+set(AudioViewer_Libraries
 	${Boost_LIBRARIES}
 	${OPENCL_LIBRARIES}
 	opengl32.lib
@@ -37,7 +37,7 @@ set(ImageViewer_Libraries
 	${GLEW_LIBRARIES}
 )
 
-QT5_WRAP_UI(ImageViewer_Uis
+QT5_WRAP_UI(AudioViewer_Uis
     glview.ui
 )
 
@@ -56,25 +56,25 @@ link_directories(${OPENCL_LIB_DIR})
 #include_directories(${GLEW_INCLUDE_DIRS})
 #include_directories(${GLM_INCLUDE_DIRS})
 
-add_library(ImageViewer SHARED
-	${ImageViewer_Sources}
-	${ImageViewer_Headers}
-	${ImageViewer_Uis}
+add_library(AudioViewer SHARED
+	${AudioViewer_Sources}
+	${AudioViewer_Headers}
+	${AudioViewer_Uis}
 )
 
-target_link_libraries(ImageViewer ${ImageViewer_Libraries})
-qt5_use_modules(ImageViewer Core Widgets OpenGL) 
+target_link_libraries(AudioViewer ${AudioViewer_Libraries})
+qt5_use_modules(AudioViewer Core Widgets OpenGL) 
 
-set_target_properties(ImageViewer PROPERTIES 
+set_target_properties(AudioViewer PROPERTIES 
 	FOLDER "filters"
 )
 
-add_dependencies(ImageViewer Utilities)
-add_dependencies(ImageViewer Base)
-add_dependencies(ImageViewer Media)
-add_dependencies(ImageViewer ControlStructures)
+add_dependencies(AudioViewer Utilities)
+add_dependencies(AudioViewer Base)
+add_dependencies(AudioViewer Media)
+add_dependencies(AudioViewer ControlStructures)
 
-create_target_launcher(ImageViewer
+create_target_launcher(AudioViewer
 	RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS}
 	WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
 )

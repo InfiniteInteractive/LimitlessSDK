@@ -11,7 +11,8 @@ using namespace Limitless;
 
 AudioMeter::AudioMeter(std::string name, SharedMediaFilter parent):
 MediaAutoRegister(name, parent),
-m_audioMeterView(nullptr)
+m_audioMeterView(nullptr),
+m_enabled(false)
 {
 }
 
@@ -26,6 +27,10 @@ bool AudioMeter::initialize(const Attributes &attributes)
 
 	addSinkPad("Sink", "[{\"mime\":\"audio/raw\"}]");
 	addSourcePad("Source", "[{\"mime\":\"audio/raw\"}]");
+
+    addAttribute("enable", false);
+    addAttribute("vertical", true);
+
 	return true;
 }
 
@@ -44,14 +49,18 @@ SharedPluginView AudioMeter::getView()
 
 bool AudioMeter::processSample(SharedMediaPad sinkPad, SharedMediaSample sample)
 {
-	if(sample->isType(m_iAudioSampleId))
-	{
-		if(m_audioMeterView != nullptr)
-		{
-			Limitless::SharedIAudioSample audioSample=boost::dynamic_pointer_cast<Limitless::IAudioSample>(sample);
-			m_audioMeterView->processSample(audioSample);
-		}
-	}
+    if(m_enabled)
+    {
+        if(sample->isType(m_iAudioSampleId))
+        {
+            if(m_audioMeterView!=nullptr)
+            {
+                Limitless::SharedIAudioSample audioSample=boost::dynamic_pointer_cast<Limitless::IAudioSample>(sample);
+
+                m_audioMeterView->processSample(audioSample);
+            }
+        }
+    }
 
 	pushSample(sample);
 	return true;
@@ -109,4 +118,16 @@ void AudioMeter::onLinkFormatChanged(SharedMediaPad pad, SharedMediaFormat forma
 			sourcePad->setFormat(sourceFormat);
 		}
 	}
+}
+
+void AudioMeter::onAttributeChanged(std::string name, SharedAttribute attribute)
+{
+    if(name=="enable")
+    {
+        m_enabled=attribute->toBool();
+    }
+    else if(name=="vertical")
+    {
+        m_audioMeterView->setVertical(attribute->toBool());
+    }
 }

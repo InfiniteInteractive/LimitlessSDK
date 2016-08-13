@@ -28,14 +28,16 @@ protected:
 	virtual StateChange onPaused();
 	virtual StateChange onPlaying();
 
-	bool onAcceptMediaFormat(Limitless::SharedMediaPad pad, Limitless::SharedMediaFormat format);
-	void onLinkFormatChanged(Limitless::SharedMediaPad pad, Limitless::SharedMediaFormat format);
+	virtual bool onAcceptMediaFormat(Limitless::SharedMediaPad pad, Limitless::SharedMediaFormat format);
+	virtual void onLinkFormatChanged(Limitless::SharedMediaPad pad, Limitless::SharedMediaFormat format);
+    virtual void onAttributeChanged(std::string name, Limitless::SharedAttribute attribute);
 
 private:
 	Limitless::SharedPluginView m_view;
 	AudioMeterView *m_audioMeterView;
 
 	size_t m_iAudioSampleId;
+    bool m_enabled;
 };
 
 namespace Limitless{namespace traits

@@ -148,13 +148,13 @@ bool FfmpegOutput::processSample(SharedMediaPad sinkPad, SharedMediaSample sampl
 			{
 				std::string message="Opening "+location;
 
-				OutputDebugStringA(message.c_str());
+				Log::message("FfmpegOutput", message);
 				avError=avio_open(&m_avFormatContext->pb, location.c_str(), AVIO_FLAG_WRITE);
 
 				if(avError != 0)
 				{
 					message="Failed to open "+location;
-					OutputDebugStringA(message.c_str());
+					Log::error("FfmpegOutput", message);
 
 					m_enabled=false;
 					return false;

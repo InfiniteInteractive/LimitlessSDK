@@ -95,6 +95,7 @@ private:
 	CodecDescriptions m_videoCodecs;
 	CodecDescriptions m_audioCodecs;
 
+    bool m_enabled;
 	bool m_videoCodecInit;
 	int m_currentVideoCodec;
 	AVCodecContext *m_videoCodec;

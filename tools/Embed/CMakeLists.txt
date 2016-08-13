@@ -13,8 +13,10 @@ foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
     set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} ${TOPLEVEL_BINARY_DIR}/bin/tools/ )
 endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
-#remove min and max macro declares from windows builds, causes issues with std::min/max
-add_definitions(-DNOMINMAX)
+if(WIN32)
+	add_definitions(-DNOMINMAX)#remove min and max macro declares from windows builds, causes issues with std::min/max
+	add_definitions(-DWINDOWS)
+endif()
 
 set(Embed_Sources
 	getopt.cpp
@@ -47,8 +49,8 @@ if(WIN32)
    set_target_properties(Embed PROPERTIES COMPILE_DEFINITIONS_DEBUG "_CONSOLE")
    set_target_properties(Embed PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/SUBSYSTEM:CONSOLE")
    set_target_properties(Embed PROPERTIES COMPILE_DEFINITIONS_RELWITHDEBINFO "_CONSOLE")
-   set_target_properties(Embed PROPERTIES LINK_FLAGS_RELEASE "/SUBSYSTEM:windows")
-   set_target_properties(Embed PROPERTIES LINK_FLAGS_MINSIZEREL "/SUBSYSTEM:windows")
+   set_target_properties(Embed PROPERTIES LINK_FLAGS_RELEASE "/SUBSYSTEM:CONSOLE")
+   set_target_properties(Embed PROPERTIES LINK_FLAGS_MINSIZEREL "/SUBSYSTEM:CONSOLE")
 endif(WIN32)
 
 set_target_properties(Embed PROPERTIES 

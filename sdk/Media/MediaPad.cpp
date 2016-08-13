@@ -75,6 +75,26 @@ bool MediaPad::accept(SharedMediaFormat format)
 	return parent()->onAcceptMediaFormat(shared_from_this(), format);
 }
 
+bool MediaPad::link(SharedMediaPad mediaPad)
+{
+    if(mediaPad->linked())
+        return false;
+
+    SharedMediaFormats mediaFormats=queryMediaFormats();
+
+    BOOST_FOREACH(SharedMediaFormat &mediaFormat, mediaFormats)
+    {
+        DEBUG_MEDIA_FORMAT(mediaFormat);
+
+        if(!mediaPad->accept(mediaFormat))
+            continue;
+
+        if(link(mediaPad, mediaFormat))
+            return true;
+    }
+    return false;
+}
+
 bool MediaPad::link(SharedMediaPad mediaPad, SharedMediaFormat format)
 {
 	if(!accept(format))

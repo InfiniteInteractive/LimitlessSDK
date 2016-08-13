@@ -50,6 +50,7 @@ public:
 	virtual size_t sinkPadIndex(std::string name);
 
 	virtual bool link(boost::shared_ptr<IMediaFilter> sinkFilter);
+    virtual bool link(SharedMediaPad sinkPad);
 	virtual void disconnect(boost::shared_ptr<IMediaFilter> sink);
 	virtual void disconnect(SharedMediaPad localPad);
 

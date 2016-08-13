@@ -203,7 +203,7 @@ in GCC.  */
 # define my_index       strchr
 #else
 
-# if HAVE_STRING_H || WIN32 /* Pete Wilson mod 7/28/02 */
+# if HAVE_STRING_H || WIN32 || WINDOWS/* Pete Wilson mod 7/28/02 */
 #  include <string.h>
 # else
 #  include <strings.h>

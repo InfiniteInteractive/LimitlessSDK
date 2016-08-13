@@ -47,9 +47,12 @@ public:
 
 	public slots:
 	void setValue(float value);
+    void setVertical(bool value);
 
 protected:
 	void paintEvent(QPaintEvent *);
+    void paintVertical();
+    void paintHorizontal();
 
 	QColor m_backgroundColor;
 	QColor m_highColor;
@@ -60,6 +63,7 @@ protected:
 	float m_maxiumValue;
 	float m_minimumValue;
 	float m_value;
+    bool m_vertical;
 
 	unsigned int m_cells;
 };

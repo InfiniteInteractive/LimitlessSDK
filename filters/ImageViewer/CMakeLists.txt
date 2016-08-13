@@ -14,6 +14,7 @@ include(AddPackage)
 
 add_package("glm" VERSION "0.9.7.6")
 add_package("glew" VERSION "2.0.0")
+add_package("opencl")
 
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
@@ -87,5 +88,4 @@ create_target_launcher(ImageViewer
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-message(STATUS "********GLEW bin dir: ${GLEW_BIN_DIRS}")
-set(ImageViewer_BIN_DIRS ${GLEW_BIN_DIRS} PARENT_SCOPE)
+set(ImageViewer_BIN_DIRS ${GLEW_BIN_DIRS} CACHE INTERNAL "")

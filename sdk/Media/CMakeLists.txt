@@ -98,6 +98,7 @@ set(Media_Libraries
 	Utilities.lib
 	Base.lib
 	${OPENGL_gl_LIBRARY}
+	Opengl32.lib
 	${GLEW_LIBRARIES}
 )
 

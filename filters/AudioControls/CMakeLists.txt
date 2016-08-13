@@ -1,3 +1,5 @@
+message(STATUS "AudioControls CMake Started")
+
 #cmake_minimum_required(VERSION 2.8.9)
 #if(POLICY CMP0020)
 #	cmake_policy(SET CMP0020 NEW)
@@ -7,8 +9,8 @@ project(AudioControls)
 
 set(CMAKE_AUTOMOC ON)
 find_package(Qt5OpenGL REQUIRED)
-find_package(GLM)
-find_package(GLEW)
+#find_package(GLM)
+#find_package(GLEW)
 
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
@@ -16,16 +18,21 @@ add_definitions(-DNOMINMAX)
 set(AudioControls_Sources
 	AudioMeterView.cpp
 	audioMeter.cpp
-	AudioMixerView.cpp
 	AudioMixer.cpp
+	AudioMixerInputView.cpp
+	AudioMixerOutputView.cpp
+	AudioMixerView.cpp
 )
 
 set(AudioControls_Headers
 	AudioControls_global.h
 	AudioMeterView.h
 	audioMeter.h
-	AudioMixerView.h
 	AudioMixer.h
+	AudioMixerInfo.h
+	AudioMixerInputView.h
+	AudioMixerOutputView.h
+	AudioMixerView.h
 )
 
 set(AudioControls_Libraries
@@ -38,6 +45,8 @@ set(AudioControls_Libraries
 
 QT5_WRAP_UI(AudioControls_Uis
     AudioMeterView.ui
+	AudioMixerInputView.ui
+	AudioMixerOutputView.ui
 	AudioMixerView.ui
 )
 
@@ -73,6 +82,7 @@ add_dependencies(AudioControls Utilities)
 add_dependencies(AudioControls Base)
 add_dependencies(AudioControls Media)
 add_dependencies(AudioControls ControlStructures)
+add_dependencies(AudioControls QtComponents)
 
 create_target_launcher(AudioControls
 	RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS}

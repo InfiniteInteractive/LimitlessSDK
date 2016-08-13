@@ -584,6 +584,21 @@ bool IMediaFilter::link(boost::shared_ptr<IMediaFilter> sinkFilter)
 	return false;
 }
 
+bool IMediaFilter::link(SharedMediaPad sinkPad)
+{
+    SharedMediaPads sourcePads=getSourcePads();
+
+    BOOST_FOREACH(SharedMediaPad &sourcePad, sourcePads)
+    {
+        if(!sourcePad->linked())
+        {
+            if(sourcePad->link(sinkPad))
+                return true;
+        }
+    }
+    return false;
+}
+
 //SharedMediaFormat IMediaFilter::connect(boost::shared_ptr<IMediaFilter> sink, SharedMediaFormat format)
 //{
 //	SharedMediaFormat acceptedFormat=accept(sink);

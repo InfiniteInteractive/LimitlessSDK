@@ -66,7 +66,8 @@ public:
 	
 	bool accept(SharedMediaFormat format);
 //	virtual SharedMediaFormat accept(SharedMediaPad mediaPad, SharedMediaFormat format=SharedMediaFormat())=0;
-	bool link(SharedMediaPad mediaPad, SharedMediaFormat format=SharedMediaFormat());
+    bool link(SharedMediaPad mediaPad);
+	bool link(SharedMediaPad mediaPad, SharedMediaFormat format);
 	bool link(boost::shared_ptr<IMediaFilter> sinkFilter);
 	bool relink();
 	bool linked(){return (m_state == LINKED);}

@@ -24,6 +24,7 @@ using namespace Limitless;
 
 FfmpegDecoder::FfmpegDecoder(std::string name, SharedMediaFilter parent):
 MediaAutoRegister(name, parent),
+m_enabled(false),
 m_currentVideoCodec(0),
 m_videoCodec(nullptr),
 m_audioCodec(nullptr),
@@ -94,6 +95,7 @@ bool FfmpegDecoder::initialize(const Attributes &attributes)
 	}
 	sinkPadDescription+="]";
 
+    addAttribute("enable", false);
 	addSinkPad("Sink", sinkPadDescription);
 
 	return true;
@@ -111,6 +113,9 @@ SharedPluginView FfmpegDecoder::getView()
 
 bool FfmpegDecoder::processSample(SharedMediaPad sinkPad, SharedMediaSample sample)
 {
+    if(!m_enabled)
+        return false;
+
 	if(sample->type() == m_ffmpegPacketSampleId)
 	{
 		SharedFfmpegPacketSample packetSample=boost::dynamic_pointer_cast<FfmpegPacketSample>(sample);
@@ -159,7 +164,7 @@ bool FfmpegDecoder::processSample(SharedMediaPad sinkPad, SharedMediaSample samp
 				//			SharedImageSample imageSample=boost::dynamic_pointer_cast<ImageSample>(sourceSample);
 
 				inputFrame->pts=av_frame_get_best_effort_timestamp(inputFrame);
-				OutputDebugStringA((boost::format("Decoder %08x - frame time %d\n")%this%inputFrame->pts).str().c_str());
+				Log::message("FfmpegDecoder", (boost::format("Decoder %08x - frame time %d\n")%this%inputFrame->pts).str());
 
 				m_frameSample->copyHeader(sample, instance());
 				m_frameSample->setSourceTimestamp(inputFrame->pts);
@@ -548,6 +553,9 @@ void FfmpegDecoder::onLinkFormatChanged(SharedMediaPad pad, SharedMediaFormat fo
 
 void FfmpegDecoder::onAttributeChanged(std::string name, SharedAttribute attribute)
 {
+    if(name=="enable")
+        m_enabled=attribute->toBool();
+
 //	if(name == "videoEncoder")
 //	{
 //		std::string videoEncoder=attribute->toString();
