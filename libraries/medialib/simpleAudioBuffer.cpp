@@ -36,7 +36,8 @@ void SimpleAudioBuffer::alloc(AudioFormat format, unsigned int channels, unsigne
     else
         channelStride=getTypeSize(format);
 
-    reserve(samples);
+//    reserve(samples);
+	resize(samples);
 }
 
 void SimpleAudioBuffer::resize(unsigned int samples)
@@ -47,12 +48,15 @@ void SimpleAudioBuffer::resize(unsigned int samples)
 //        channelStride=getTypeSize(format);
 //
 //    size_t size=channels*channelStride;
-    size_t size=0;
+//    size_t size=0;
 
-    if(channels>0)
-        size=(channels-1)*channelStride+getTypeSize(format)*samples; //need to include channelStride in buffer size
-    data.resize(size);
+//    if(channels>0)
+//        size=(channels-1)*channelStride+getTypeSize(format)*samples; //need to include channelStride in buffer size
+//    data.resize(size);
 
+	size_t size=channels*getTypeSize(format)*samples;
+
+	data.resize(size);
     this->samples=samples;
 }
 

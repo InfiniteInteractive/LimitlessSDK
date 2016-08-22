@@ -31,7 +31,7 @@ std::vector<float> averageSamples(uint8_t *buffer, int samples, int channels)
 	for(size_t channel=0; channel<channels; ++channel)
 	{
 		averages[channel]/=channelSamples;
-		averages[channel]=Limitless::convertToDb((_SampleType)averages[channel]);
+//		averages[channel]=Limitless::convertToDb((_SampleType)averages[channel]);
 	}
 
 	return averages;
@@ -42,11 +42,11 @@ std::vector<float> averagePlanarSamples(uint8_t *buffer, int samples, int channe
 {
 	std::vector<float> averages(channels);
 	_SampleType *data=(_SampleType *)buffer;
-	int channelSamples=samples/channels;
+//	int channelSamples=samples/channels;
 
 	for(size_t channel=0; channel<channels; ++channel)
 	{
-		for(size_t sample=0; sample<channelSamples; ++sample)
+		for(size_t sample=0; sample<samples; ++sample)
 		{
 
 			averages[channel]+=(*data);
@@ -56,62 +56,125 @@ std::vector<float> averagePlanarSamples(uint8_t *buffer, int samples, int channe
 
 	for(size_t channel=0; channel<channels; ++channel)
 	{
-		averages[channel]/=channelSamples;
-		averages[channel]=Limitless::convertToDb((_SampleType)averages[channel]);
+		averages[channel]/=samples;
+//		averages[channel]=Limitless::convertToDb((_SampleType)averages[channel]);
 	}
 
 	return averages;
 }
 
 template<typename _SampleType>
-std::vector<float> peakSamples(uint8_t *buffer, int samples, int channels)
+std::vector<float> peakSamples(uint8_t *buffer, int samples, int channels, bool normalize=true)
 {
 	std::vector<float> peak(channels);
+	std::vector<_SampleType> min(channels);
+	std::vector<_SampleType> max(channels);
+	std::vector<int> direction(channels);
+
 	_SampleType *data=(_SampleType *)buffer;
-	int channelSamples=samples/channels;
+//	int channelSamples=samples/channels;
+	_SampleType value;
+
+//	for(size_t channel=0; channel<channels; ++channel)
+//		peak[channel]=std::numeric_limits<_SampleType>::min();
 
 	for(size_t channel=0; channel<channels; ++channel)
-		peak[channel]=std::numeric_limits<_SampleType>::min();
+	{
+		peak[channel]=0;// std::numeric_limits<_SampleType>::min();
+		direction[channel]=0;
 
-	for(size_t sample=0; sample<channelSamples; ++sample)
+		min[channel]=(*data);
+		max[channel]=(*data);
+		data++;
+	}
+
+	for(size_t sample=1; sample<samples; ++sample)
 	{
 		for(size_t channel=0; channel<channels; ++channel)
 		{
-			if((*data) > peak[channel])
-				peak[channel]=(*data);
+			value=abs((*data));
+
+			if(direction[channel])
+			{
+				if(value>=max[channel])
+					max[channel]=value;
+				else
+				{
+					value=max[channel]-min[channel];
+					if(value>peak[channel])
+						peak[channel]=value;
+					min[channel]=(*data);
+					direction[channel]=0;
+				}
+			}
+			else
+			{
+				if(value<=min[channel])
+					min[channel]=value;
+				else
+				{
+					value=max[channel]-min[channel];
+					if(value>peak[channel])
+						peak[channel]=value;
+					max[channel]=(*data);
+					direction[channel]=1;
+				}
+			}
+
+//			value=abs((*data));
+//
+//			if(value > peak[channel])
+//				peak[channel]=value;
 			data++;
 		}
 	}
 
-	for(size_t channel=0; channel<channels; ++channel)
+//	for(size_t channel=0; channel<channels; ++channel)
+//	{
+//		peak[channel]=Limitless::convertToDb((_SampleType)peak[channel]);
+//	}
+	if(normalize)
 	{
-		peak[channel]=Limitless::convertToDb((_SampleType)peak[channel]);
+		_SampleType max=std::numeric_limits<_SampleType>::max();
+
+		for(size_t channel=0; channel<channels; ++channel)
+			peak[channel]=peak[channel]/max;
 	}
 
 	return peak;
 }
 
 template<typename _SampleType>
-std::vector<float> peakPlanarSamples(uint8_t *buffer, int samples, int channels)
+std::vector<float> peakPlanarSamples(uint8_t *buffer, int samples, int channels, bool normalize=true)
 {
 	std::vector<float> peak(channels);
 	_SampleType *data=(_SampleType *)buffer;
-	int channelSamples=samples/channels;
+//	int channelSamples=samples/channels;
+	_SampleType value;
 
 	for(size_t channel=0; channel<channels; ++channel)
 	{
 		peak[channel]=std::numeric_limits<_SampleType>::min();
-		for(size_t sample=0; sample<channelSamples; ++sample)
+		for(size_t sample=0; sample<samples; ++sample)
 		{
-			if((*data) > peak[channel])
-				peak[channel]=(*data);
+			value=abs((*data));
+
+			if(value > peak[channel])
+				peak[channel]=value;
 			data++;
 		}
 	}
 
-	for(size_t channel=0; channel<channels; ++channel)
+//	for(size_t channel=0; channel<channels; ++channel)
+//	{
+//		peak[channel]=Limitless::convertToDb((_SampleType)peak[channel]);
+//	}
+	if(normalize)
 	{
-		peak[channel]=Limitless::convertToDb((_SampleType)peak[channel]);
+		_SampleType max=std::numeric_limits<_SampleType>::max();
+
+		for(size_t channel=0; channel<channels; ++channel)
+			peak[channel]=peak[channel]/max;
 	}
 
 	return peak;

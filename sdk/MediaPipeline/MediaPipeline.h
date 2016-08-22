@@ -78,6 +78,7 @@ struct SampleBin
 
 	IMediaFilter *filter;
 	MediaSamples freeSamples;
+	MediaSamples allSamples;
 	
 	size_t samplesInUse;
 	size_t maxBuffer;

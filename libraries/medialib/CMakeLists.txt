@@ -14,8 +14,11 @@ add_package("dlib" VERSION "19.0")
 set(medialib_sources
 	audioBuffer.cpp
 	audioBufferWrapper.cpp
+	audioChannels.cpp
 	audioConversion.cpp
+	audioMix.cpp
 	audioOperations.cpp
+	audioPeak.cpp
 	simpleAudioBuffer.cpp
 	spectrogram.cpp
 	synchronize.cpp
@@ -24,8 +27,11 @@ set(medialib_sources
 set(medialib_headers
 	medialib/audioBuffer.h
 	medialib/audioBufferWrapper.h
+	medialib/audioChannels.h
 	medialib/audioConversion.h
+	medialib/audioMix.h
 	medialib/audioOperations.h
+	medialib/audioPeak.h
 	medialib/medialibDefine.h
 	medialib/simpleAudioBuffer.h
 	medialib/spectrogram.h
@@ -34,8 +40,8 @@ set(medialib_headers
 
 set(medialib_libraries
 	${FFTW_LIBRARIES}
-	${DLIB_LIBRARIES}
 	cvlib.lib
+	${DLIB_LIBRARIES}
 	)
 
 include_directories(${LIBRARIES_PATH}/cvlib)
@@ -60,3 +66,5 @@ create_target_launcher(medialib
 
 add_dependencies(medialib cvlib)
 add_dependencies(medialib ${DLIB_TARGET})
+
+set(medialib_BIN_DIRS ${FFTW_BIN_DIRS} ${DLIB_BIN_DIRS} CACHE INTERNAL "")

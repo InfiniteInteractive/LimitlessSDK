@@ -74,6 +74,7 @@ set(ffmpeg_Libraries
 #	avutil.lib
 #	swscale.lib
 	${FFMPEG_LIBRARIES}
+	medialib.lib
 )
 
 QT5_WRAP_UI(ffmpeg_Uis
@@ -83,6 +84,7 @@ QT5_WRAP_UI(ffmpeg_Uis
 
 include_directories(${SDK_INCLUDES})
 link_directories(${LIBRARY_OUTPUT_PATH})
+include_directories(${LIBRARIES_PATH}/medialib)
 
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
@@ -108,6 +110,7 @@ add_dependencies(ffmpeg Utilities)
 add_dependencies(ffmpeg Base)
 add_dependencies(ffmpeg Media)
 add_dependencies(ffmpeg QtComponents)
+add_dependencies(ffmpeg medialib)
 
 create_target_launcher(ffmpeg
 	RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS}

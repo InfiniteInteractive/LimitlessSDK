@@ -20,8 +20,10 @@ set(AudioControls_Sources
 	audioMeter.cpp
 	AudioMixer.cpp
 	AudioMixerInputView.cpp
+	AudioMixerMixView.cpp
 	AudioMixerOutputView.cpp
 	AudioMixerView.cpp
+	medialibHelpers.cpp
 )
 
 set(AudioControls_Headers
@@ -31,8 +33,10 @@ set(AudioControls_Headers
 	AudioMixer.h
 	AudioMixerInfo.h
 	AudioMixerInputView.h
+	AudioMixerMixView.h
 	AudioMixerOutputView.h
 	AudioMixerView.h
+	medialibHelpers.h
 )
 
 set(AudioControls_Libraries
@@ -41,17 +45,20 @@ set(AudioControls_Libraries
 	Base.lib
 	Media.lib
 	QtComponents.lib
+	medialib.lib
 )
 
 QT5_WRAP_UI(AudioControls_Uis
     AudioMeterView.ui
 	AudioMixerInputView.ui
+	AudioMixerMixView.ui
 	AudioMixerOutputView.ui
 	AudioMixerView.ui
 )
 
 include_directories(${SDK_INCLUDES})
 link_directories(${LIBRARY_OUTPUT_PATH})
+include_directories(${LIBRARIES_PATH}/medialib)
 
 include_directories(${FILTERS_PATH})
 link_directories(${CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER}})
@@ -83,6 +90,7 @@ add_dependencies(AudioControls Base)
 add_dependencies(AudioControls Media)
 add_dependencies(AudioControls ControlStructures)
 add_dependencies(AudioControls QtComponents)
+add_dependencies(AudioControls medialib)
 
 create_target_launcher(AudioControls
 	RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS}
@@ -90,3 +98,6 @@ create_target_launcher(AudioControls
 )
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+set(AudioControls_BIN_DIRS ${medialib_BIN_DIRS} CACHE INTERNAL "")
+

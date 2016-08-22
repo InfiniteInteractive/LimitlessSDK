@@ -32,6 +32,7 @@ public:
 	virtual Limitless::AudioSampleFormat format() const;
 	virtual unsigned int channels() const;
 	virtual unsigned int samples() const;
+	virtual unsigned int sampleRate() const;
 
 	void unref();
 

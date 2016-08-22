@@ -13,7 +13,32 @@
 namespace Limitless
 {
 
-class BASE_EXPORT PluginObject:public AttributeContainer
+class PluginObject;
+
+class BASE_EXPORT PluginEventListener
+{
+public:
+	PluginEventListener() {}
+	virtual ~PluginEventListener() {}
+
+	virtual void onPluginEvent(PluginObject *plugin, std::string eventName)=0;
+};
+
+class BASE_EXPORT PluginEventNotify
+{
+public:
+	PluginEventNotify() {}
+	virtual ~PluginEventNotify() {}
+
+	void addEventListener(PluginEventListener *listener);
+	void removeEventListener(PluginEventListener *listener);
+	void event(std::string name);
+
+private:
+	std::vector<PluginEventListener *> m_listners;
+};
+
+class BASE_EXPORT PluginObject:public AttributeContainer, public PluginEventNotify
 {
 public:
 	PluginObject(std::string instance):m_instance(instance){m_baseClasses.push_back("PluginObject");};
@@ -29,6 +54,9 @@ public:
 
 	virtual SharedPluginView getView() { return SharedPluginView(); }
 	virtual SharedPluginView getAttributeView(){return SharedPluginView();}
+
+//IPluginEventNotify
+	
 
 	virtual void serialize(Serializer *serializer);
 	virtual void unserialize(Unserializer *unserializer);

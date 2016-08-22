@@ -3,29 +3,13 @@
 namespace Limitless
 {
 
-unsigned char *AudioSample::buffer()
+void AudioSample::resize(AudioSampleFormat format, unsigned int channels, unsigned int samples, unsigned int sampleRate)
 {
-	return nullptr;
-}
-
-size_t AudioSample::size() const
-{
-	return 0;
-}
-
-AudioSampleFormat AudioSample::format() const
-{
-	return AudioSampleFormat::Unknown;
-}
-
-unsigned int AudioSample::channels() const
-{
-	return 0;
-}
-
-unsigned int AudioSample::samples() const
-{
-	return 0;
+	m_format=format;
+	m_channels=channels;
+	m_samples=samples;
+	m_sampleRate=sampleRate;
+	m_buffer.resize(calculateAudioBufferSize(format, channels, samples));
 }
 
 }//namespace Limitless

@@ -41,6 +41,11 @@ unsigned int FfmpegAudioSample::samples() const
 	return m_frame->nb_samples;
 }
 
+unsigned int FfmpegAudioSample::sampleRate() const
+{
+	return m_frame->sample_rate;
+}
+
 void FfmpegAudioSample::unref()
 {
 	av_frame_unref(m_frame);

@@ -26,6 +26,9 @@ enum class AudioSampleFormat
 	DoubleP
 };
 
+size_t MEDIA_EXPORT sampleSize(AudioSampleFormat format);
+size_t MEDIA_EXPORT calculateAudioBufferSize(AudioSampleFormat format, unsigned int channels, unsigned int samples);
+
 class MEDIA_EXPORT IAudioSample:public AutoRegisterMediaSample<IAudioSample, MediaSample, true>
 {
 public:
@@ -34,7 +37,8 @@ public:
 
 	virtual AudioSampleFormat format() const=0;
 	virtual unsigned int channels() const=0;
-	virtual unsigned int samples() const=0;
+	virtual unsigned int samples() const=0; //number of sample per channel
+	virtual unsigned int sampleRate() const=0;
 };
 
 typedef boost::shared_ptr<IAudioSample> SharedIAudioSample;

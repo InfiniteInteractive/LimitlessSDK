@@ -11,6 +11,8 @@
 
 using namespace Limitless;
 
+//#define TRACK_SAMPLES
+
 MediaPipeline::MediaPipeline(std::string instance, SharedMediaFilter parent):
 MediaFilterContainer(instance, parent),
 m_running(false),
@@ -322,47 +324,47 @@ SharedMediaSample MediaPipeline::newSample(unsigned int type, size_t bin)
     size_t binIndex=(bin&m_sampleBinIdexMask)-1;
 	MediaSample *freeSample=nullptr;
 	bool bufferFull=false;
+	
 
-    if(binIndex < m_sampleBins.size())
+	if (binIndex >= m_sampleBins.size())
+	{//using bin that is not allocated
+		assert(false);
+		return SharedMediaSample();
+	}
+
+	SampleBin *sampleBin;
+
 	{
-		SampleBin *sampleBin;
+		std::unique_lock<std::mutex> lock(m_sampleBinMutex);
 
-		{
-			std::unique_lock<std::mutex> lock(m_sampleBinMutex);
-
-			sampleBin=m_sampleBins[binIndex];
-		}
+		sampleBin=m_sampleBins[binIndex];
+	}
 		
-		{
-			std::unique_lock<std::mutex> lock(sampleBin->mutex);
+	{
+		std::unique_lock<std::mutex> lock(sampleBin->mutex);
 
-			while(freeSample==nullptr)
+		while(freeSample==nullptr)
+		{
+			if(!sampleBin->freeSamples.empty())
 			{
-				if(!sampleBin->freeSamples.empty())
+				freeSample=sampleBin->freeSamples.back();
+				sampleBin->freeSamples.pop_back();
+				break;
+			}
+			else
+			{
+				if(sampleBin->samplesInUse>=sampleBin->maxBuffer)
 				{
-					freeSample=sampleBin->freeSamples.back();
-					sampleBin->freeSamples.pop_back();
-					break;
+//						bufferFull=true;
+					sampleBin->event.wait(lock);
 				}
 				else
 				{
-					if(sampleBin->samplesInUse>=sampleBin->maxBuffer)
-					{
-//						bufferFull=true;
-						sampleBin->event.wait(lock);
-					}
-					else
-					{
-						sampleBin->samplesInUse++; //going to be creating a new sample so record it now while under mutex
-						break;
-					}
+					sampleBin->samplesInUse++; //going to be creating a new sample so record it now while under mutex
+					break;
 				}
 			}
 		}
-	}
-	else
-	{//using bin that is not allocated
-		assert(false);
 	}
 
 	SharedMediaSample sample;
@@ -383,12 +385,20 @@ SharedMediaSample MediaPipeline::newSample(unsigned int type, size_t bin)
 			assert(false);
 			return sample;//failed to get sample info
 		}
+
+		{
+			std::unique_lock<std::mutex> lock(sampleBin->mutex);
+
+			sampleBin->allSamples.push_back(sample.get());
+		}
 //		OutputDebugStringA((boost::format("Sample (0x%08x:%02d) - New\n")%sample.get()%sample.use_count()).str().c_str());
 		sample->setAllocBin(bin);
 	}
 
+#ifdef TRACK_SAMPLES
 //	OutputDebugStringA((boost::format("0x%08x(0x%08x) - newSample %u\n")%this%GetCurrentThreadId()%sample->uniqueId()).str().c_str());
-//	OutputDebugStringA((boost::format("NewSample %u\n")%sample.get()).str().c_str());
+	OutputDebugStringA((boost::format("NewSample %u, bin (%d, %d)\n")%sample.get()%bin%sample->allocBin()).str().c_str());
+#endif //TRACK_SAMPLES
 
 	sample->setSequenceNumber(0);
 //	if(sample->flags())
@@ -421,13 +431,16 @@ void MediaPipeline::deleteSample(MediaSample *sample)
 
 	if(sampleBin->seqId == seqId)
 	{
+#ifdef TRACK_SAMPLES
+		//		OutputDebugStringA((boost::format("return sample 0x%08x\n")%sample).str().c_str());
+		OutputDebugStringA((boost::format("****Sample returned 0x%08x, bin %d, last filter %s\n") % sample%sample->allocBin()%sample->lastFilter()).str().c_str());
+		//		if(!sample->copied())
+		//			OutputDebugStringA((boost::format("****Sample returned without copy, last filter %s\n")%sample->lastFilter()).str().c_str());
+#endif //TRACK_SAMPLES
+		sample->touch("returned");
+
 		{
 			std::unique_lock<std::mutex> lock(sampleBin->mutex);
-
-//		OutputDebugStringA((boost::format("return sample 0x%08x\n")%sample).str().c_str());
-//		OutputDebugStringA((boost::format("****Sample returned 0x%08x, last filter %s\n")%sample%sample->lastFilter()).str().c_str());
-//		if(!sample->copied())
-//			OutputDebugStringA((boost::format("****Sample returned without copy, last filter %s\n")%sample->lastFilter()).str().c_str());
 
 			sampleBin->freeSamples.push_back(sample);
 		}

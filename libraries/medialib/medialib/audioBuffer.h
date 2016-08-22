@@ -1,28 +1,13 @@
-#ifndef _audioBuffer_h_
-#define _audioBuffer_h_
+#ifndef _medialib_audioBuffer_h_
+#define _medialib_audioBuffer_h_
 
 #include "medialib/medialibDefine.h"
+#include "medialib/audioFormat.h"
 #include <vector>
 #include <memory>
 
 namespace medialib
 {
-
-enum class AudioFormat
-{
-    Unknown=0,
-    UInt8=1, ///< enum value unsigned 8 bit sample
-    Int16=2, ///< enum value 16 bit sample
-    Int32=3, ///< enum value 32 bit sample
-    Float=4, ///< enum value float sample
-    Double=5, ///< enum value double sample
- //Planar
-    UInt8P=6, ///< enum value unsigned 8 bit sample, planar
-    Int16P=7, ///< enum value 16 bit sample, planar
-    Int32P=8, ///< enum value 32 bit sample, planar
-    FloatP=9, ///< enum value float sample, planar
-    DoubleP=10 ///< enum value double sample, planar
-};
 
 class AudioBuffer
 {
@@ -96,6 +81,20 @@ private:
     std::unique_ptr<AudioBufferConcept> m_self;
 };
 
+//class AudioBuffers
+//{
+//public:
+//	template<typename _Type>
+//	AudioBuffer(std::vector<_Type> &value):m_self(new AudioBufferModel<_Type>(value)) {}
+//
+//private:
+//	struct AudioBufferSConcept
+//	{
+//	};
+//
+//	std::unique_ptr<std::vector<>> m_self;
+//};
+
 medialib_EXPORT size_t getTypeSize(const AudioFormat &format);
 medialib_EXPORT bool isPlanar(const AudioFormat &format);
 medialib_EXPORT bool isPlanar(const AudioBuffer &audioBuffer);
@@ -126,4 +125,4 @@ template<typename _Type> uint8_t *bufferPosByIndex(uint8_t *buffer, size_t index
 }
 
 }
-#endif //_audioBuffer_h_
+#endif //_medialib_audioBuffer_h_

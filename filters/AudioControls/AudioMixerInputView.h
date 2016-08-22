@@ -21,16 +21,28 @@ public:
 	~AudioMixerInputView();
 
     void update();
+	void processSample(Limitless::SharedIAudioSample sample);
+
+	void setVertical(bool vertical);
 
 signals:
+	void setMeterValues(std::vector<float> values);
+	void setVerticalMeters(bool value);
 
 public slots:
+	void onMeterValues(std::vector<float> values);
+	void onVerticalMeter(bool value);
 
 private:
+	void initMeter(int channels);
+
 	Ui::AudioMixerInputView ui;
 
+	std::vector<Limitless::VuMeter *> m_vuMeters;
+	int m_channels;
+	bool m_verticalMeters;
+
 	InputView *m_inputView;
-    std::vector<Limitless::VuMeter *> m_vuMeters;
 };
 
 #endif //_AudioMixerInputView_h_

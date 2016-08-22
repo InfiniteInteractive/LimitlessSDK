@@ -33,7 +33,6 @@ set(cvlib_libraries
 add_library(cvlib SHARED
 	${cvlib_sources}
 	${cvlib_headers}
-	
 )
 
 target_link_libraries(cvlib ${cvlib_libraries})

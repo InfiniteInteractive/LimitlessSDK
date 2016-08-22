@@ -4,7 +4,7 @@
 
 using namespace Limitless;
 
-#define DEBUG_OWNER
+//#define DEBUG_OWNER
 
 #ifdef DEBUG_OWNER
 #include <boost/format.hpp>

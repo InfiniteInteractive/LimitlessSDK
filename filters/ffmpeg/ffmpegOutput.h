@@ -56,12 +56,22 @@ protected:
 private:
 	void writeSample(Limitless::SharedMediaSample sample);
 	void writeSample(FfmpegPacketSample *ffmpegPacketSample);
+	void writeAudioSample(Limitless::SharedMediaSample sample);
+	void writeAudioSample(FfmpegPacketSample *ffmpegPacketSample);
 
 	void setupFormat();
 	void queryFormats();
+	void setupAudioFormat();
+
+	Limitless::SharedMediaPad m_videoSinkPad;
+	Limitless::SharedMediaPad m_audioSinkPad;
 
 	bool m_firstSample;
 	int64_t m_startPts;
+
+	bool m_audioConnected;
+	bool m_firstAudioSample;
+	int64_t m_startAudioPts;
 
 	bool m_enabled;
 	bool m_recording;
@@ -80,6 +90,8 @@ private:
 	AVOutputFormat *m_avOutputFormat;
 	AVStream *m_videoStream;
 	AVPacket m_pkt;
+	AVStream *m_audioStream;
+	AVPacket m_audioPkt;
 
 	AVCodecID m_codecId;
 	int m_bitrate;
@@ -89,6 +101,15 @@ private:
 	int m_width;
 	int m_height;
 	unsigned int m_codecContextId;
+
+	AVCodecID m_audioCodecId;
+	int m_audioBitrate;
+	int m_audioSampleRate;
+	AVRational m_audioTimeBase;
+	int m_audioChannels;
+	AVSampleFormat m_audioSampleFormat;
+	int m_audioFrameSize;
+	unsigned int m_audioCodecContextId;
 };
 
 namespace Limitless{namespace traits

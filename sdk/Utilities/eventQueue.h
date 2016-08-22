@@ -130,7 +130,7 @@ public:
 		return m_queue.size();
 	}
 
-	void waitEmpty()
+	void waitWhileEmpty()
 	{
 		std::unique_lock<std::mutex> lock(m_queuMutex);
 
@@ -146,7 +146,7 @@ public:
 
 	std::unique_lock<std::mutex> acquireLock()
 	{
-		return std::unique_lock<std::mutex>(m_queuMutex);;
+		return std::unique_lock<std::mutex>(m_queuMutex);
 	}
 
 	void push_back(_Type value, std::unique_lock<std::mutex> &lock)

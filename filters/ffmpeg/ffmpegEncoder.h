@@ -12,6 +12,7 @@ extern "C"
 {
 	#include <libavcodec/avcodec.h>
 	#include <libswscale/swscale.h>
+	#include <libswresample/swresample.h>
 }
 
 //class CodecOption
@@ -50,8 +51,11 @@ public:
 
 	virtual bool processSample(Limitless::SharedMediaPad sinkPad, Limitless::SharedMediaSample sample);
 
+	void emptyEncoders();
+
 protected:
 	void initSwsContext();
+	void initAudioSwsContext();
 
 	//IMediaFilter
 	virtual StateChange onReady();
@@ -72,14 +76,20 @@ private:
 	int getVideoEncoderIndexUi(std::string name);
 	int getVideoEncoderIndexFromId(AVCodecID id);
 	int getAudioEncoderIndex(std::string name);
+	int getAudioEncoderIndexUi(std::string name);
+	
 	void updateVideoEncoderAttributes();
+	void updateAudioEncoderAttributes();
 
 	Limitless::SharedPluginView m_view;
 	size_t m_imageSampleId;
 	size_t m_bufferSampleId;
 	size_t m_ffmpegPacketSampleId;
+	size_t m_iaudioSampleId;
+	size_t m_eventSampleId;
 
 	unsigned int m_videoEncoderId;
+	unsigned int m_audioEncoderId;
 
 //	typedef std::vector<CodecDetail> CodecDetails;
 //	CodecDetails m_accessibleCodecs;
@@ -94,6 +104,7 @@ private:
 	CodecDescriptions m_videoCodecs;
 	CodecDescriptions m_audioCodecs;
 
+	bool m_isVideoEncoder;
 	int m_currentVideoEncoder;
 	AVCodecContext *m_videoEncoder;
 	CodecOptions m_videoOptions;
@@ -110,7 +121,15 @@ private:
 	int m_swsContextWidth;
 	int m_swsContextHeight;
 	bool m_enabled;
+	bool m_wasEnabled;
 
+	bool m_initAudioSwsContext;
+	SwrContext *m_swrAudioContext;
+	uint8_t *m_audioFormatBuffer[2];
+	size_t m_audioFormatBufferSize;
+
+	unsigned int m_samplesInAudioFormatBuffer;
+	
 	unsigned int m_frameIndex;
 };
 

@@ -9,6 +9,7 @@
 
 #include "AudioMixerInfo.h"
 #include "AudioMixerInputView.h"
+#include "AudioMixerMixView.h"
 #include "AudioMixerOutputView.h"
 
 #include <limits>
@@ -18,20 +19,34 @@ class AudioMixer;
 
 struct OutputView
 {
-    Limitless::SharedMediaPad pad;
+	OutputView(OutputInfo &info):outputInfo(info) {}
+
+//    Limitless::SharedMediaPad pad;
+	OutputInfo outputInfo;
+
     AudioMixerOutputView *outputView;
 };
 typedef std::shared_ptr<OutputView> SharedOutputView;
 typedef std::vector<SharedOutputView> OutputViews;
 
+struct MixView
+{
+	std::vector<ChannelMix> *channelMixes;
+	Limitless::SharedMediaPad pad;
+	AudioMixerMixView *mixView;
+};
+typedef std::shared_ptr<MixView> SharedMixView;
+typedef std::vector<SharedMixView> MixViews;
+
 struct InputView
 {
-	InputView(InputInfo &info) :inputInfo(info) {}
+	InputView(InputInfo &info):inputInfo(info) {}
 
     InputInfo inputInfo;
 
     AudioMixerInputView *inputView;
-    OutputViews outputViews;
+//    OutputViews outputViews;
+	MixViews mixViews;
 };
 typedef std::shared_ptr<InputView> SharedInputView;
 typedef std::vector<SharedInputView> InputViews;
@@ -44,7 +59,7 @@ public:
 	AudioMixerView(AudioMixer *audioMixer, QWidget *parent=0);
 	~AudioMixerView();
 
-	void processSample(Limitless::SharedIAudioSample sample);
+	void processSamples(std::vector<Limitless::SharedIAudioSample> &inputSamples, Limitless::SharedIAudioSample outputSample);
 
 	void updateChannelMatrix();
 
@@ -64,6 +79,7 @@ private:
 	AudioMixer *m_audioMixer;
 
 	InputViews m_inputViews;
+	OutputViews m_outputViews;
 };
 
 #endif //_AudioMixerView_h_

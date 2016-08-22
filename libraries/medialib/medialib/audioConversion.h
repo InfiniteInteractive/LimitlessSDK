@@ -91,9 +91,9 @@ size_t convertAudioBuffer(const AudioBuffer &audioBufferFrom, AudioBuffer &audio
 	break;
 	case AudioFormat::Float:
 	{
-		std::vector<uint8_t *> buffer;
+		std::vector<float *> buffer;
 
-		buffer.push_back((uint8_t *)audioBufferTo.getBuffer());
+		buffer.push_back((float *)audioBufferTo.getBuffer());
 		return convert<_FromType>(audioBufferFrom, 0, audioBufferFrom.getSamples(), buffer, audioBufferTo.getSize());
 	}
 	break;

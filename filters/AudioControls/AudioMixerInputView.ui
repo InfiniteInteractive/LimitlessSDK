@@ -47,13 +47,30 @@
       </widget>
      </item>
      <item>
-      <widget class="QWidget" name="vuMeter" native="true">
+      <widget class="QWidget" name="audioMeters" native="true">
        <property name="minimumSize">
         <size>
          <width>52</width>
          <height>100</height>
         </size>
        </property>
+       <layout class="QGridLayout" name="gridLayout">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <property name="spacing">
+         <number>2</number>
+        </property>
+       </layout>
       </widget>
      </item>
      <item>

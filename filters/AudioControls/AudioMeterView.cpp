@@ -1,5 +1,7 @@
 #include "AudioMeterView.h"
 
+#include "medialib/audioConversion.h"
+
 AudioMeterView::AudioMeterView(QWidget *parent):
 QWidget(parent),
 m_channels(0),
@@ -77,9 +79,12 @@ void AudioMeterView::onMeterValues(std::vector<float> values)
 	{
 		//convert dB to 0.0 - 1.0
 //		if(values[i] < 0.0f)
-			values[i]=((values[i]+20.0f)/20.0f);
+//			values[i]=((values[i]+20.0f)/20.0f);
 //		else
 //			values[i]+=(values[i]/5.0f)*0.25f+0.75f;
+		
+//		values[i]=((values[i]+1.0f)/2.0f);
+		values[i]=((medialib::convertToDb(values[i])+20.0f)/20.0f);
 
 		m_vuMeters[i]->setValue(values[i]);
 	}

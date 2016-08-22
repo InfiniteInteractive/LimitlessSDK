@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>AudioMixerOutputView</class>
- <widget class="QWidget" name="AudioMixerOutputView">
+ <class>AudioMixerMixView</class>
+ <widget class="QWidget" name="AudioMixerMixView">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>94</width>
-    <height>127</height>
+    <height>131</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -29,21 +29,37 @@
    <item>
     <layout class="QVBoxLayout" name="verticalLayout_2">
      <item>
-      <widget class="QLabel" name="nameLabel">
-       <property name="text">
-        <string>Name</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QWidget" name="vuMeter" native="true">
+      <widget class="QWidget" name="channelLevels" native="true">
        <property name="minimumSize">
         <size>
          <width>52</width>
          <height>100</height>
         </size>
        </property>
-       <layout class="QHBoxLayout" name="horizontalLayout"/>
+       <layout class="QGridLayout" name="gridLayout">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <property name="horizontalSpacing">
+         <number>2</number>
+        </property>
+       </layout>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="mute">
+       <property name="text">
+        <string>Mute</string>
+       </property>
       </widget>
      </item>
      <item>

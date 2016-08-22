@@ -104,8 +104,8 @@ void VuMeter::paintVertical()
     painter.drawRect(rect);
 
     int cellIndex=ceil(m_value*m_cells);
-    int colorIndex=ceil(0.5*m_cells);
-    int highColorIndex=ceil(0.75*m_cells);
+    int colorIndex=ceil(0.70*m_cells);
+    int highColorIndex=ceil(0.90*m_cells);
 
     if(cellIndex < 0)
         cellIndex=0;
