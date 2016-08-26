@@ -68,6 +68,11 @@ protected:
 	virtual void onAttributeChanged(std::string name, Limitless::SharedAttribute attribute);
 
 private:
+    void openEncoder();
+    void closeEncoder();
+
+    void updateLink();
+
 	void queryCodecs();
 //	void queryFormats();
 //	void setupFormat();
@@ -106,10 +111,15 @@ private:
 
 	bool m_isVideoEncoder;
 	int m_currentVideoEncoder;
+
 	AVCodecContext *m_videoEncoder;
 	CodecOptions m_videoOptions;
 	int m_currentAudioEncoder;
 	AVCodecContext *m_audioEncoder;
+    CodecOptions m_audioOptions;
+
+    unsigned int m_width;
+    unsigned int m_height;
 
 	SharedFfmpegPacketSample m_currentBufferSample;
 	AVFrame *m_frame;

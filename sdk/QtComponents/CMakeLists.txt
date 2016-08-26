@@ -19,6 +19,7 @@ set(QtComponents_Sources
 	listpopup.cpp
 	mediaStoreView.cpp
 	qComboBoxHelper.cpp
+	qSettingsHelper.cpp
 	SerializableObject.cpp
 	vuMeter.cpp
 )
@@ -31,6 +32,7 @@ set(QtComponents_Headers
 	listpopup.h
 	mediaStoreView.h
 	qComboBoxHelper.h
+	qSettingsHelper.h
 	qtcomponents_define.h
 	QtPluginView.h
 	SerializableObject.h

@@ -167,8 +167,19 @@ bool FfmpegDecoder::processSample(SharedMediaPad sinkPad, SharedMediaSample samp
 				Log::message("FfmpegDecoder", (boost::format("Decoder %08x - frame time %d\n")%this%inputFrame->pts).str());
 
 				m_frameSample->copyHeader(sample, instance());
-				m_frameSample->setSourceTimestamp(inputFrame->pts);
-                m_frameSample->setSequenceNumber(inputFrame->pts);
+                
+                
+                AVRational sampleBase={m_videoCodec->time_base.num*m_videoCodec->ticks_per_frame, m_videoCodec->time_base.den};
+                int64_t sourceTimeStamp=(av_rescale_q(inputFrame->pts, m_videoCodec->pkt_timebase, sampleBase));
+
+                AVRational rational={1, 1000000};//media framework time base
+                int64_t timeStamp=av_rescale_q(inputFrame->pts, m_videoCodec->pkt_timebase, rational);
+
+                Log::message("FfmpegDecoder", (boost::format(" rescaled frame time %d, %d\n")%timeStamp%sourceTimeStamp).str());
+
+                m_frameSample->setTimestamp(timeStamp);
+                m_frameSample->setSourceTimestamp(sourceTimeStamp);
+                m_frameSample->setSequenceNumber(sourceTimeStamp);
 				m_frameSample->setFormat(m_videoCodec->pix_fmt);
 				pushSample(m_frameSample);
 				m_frameSample.reset();
@@ -208,7 +219,18 @@ bool FfmpegDecoder::processSample(SharedMediaPad sinkPad, SharedMediaSample samp
 
 					inputFrame->pts=av_frame_get_best_effort_timestamp(inputFrame);
 					m_audioSample->copyHeader(sample, instance());
-					//				m_frameSample->setFormat(m_videoCodec->pix_fmt);
+
+                    //int64_t timeStamp=av_rescale_q(inputFrame->pts, m_audioCodec->time_base, rational);
+                    AVRational sampleBase={m_audioCodec->time_base.num*m_audioCodec->ticks_per_frame, m_audioCodec->time_base.den};
+                    int64_t sourceTimeStamp=(av_rescale_q(inputFrame->pts, m_audioCodec->pkt_timebase, sampleBase));
+
+                    AVRational rational={1, 1000000};
+                    int64_t timeStamp=av_rescale_q(inputFrame->pts, m_audioCodec->pkt_timebase, rational);
+
+                    m_audioSample->setTimestamp(timeStamp);
+                    m_audioSample->setSourceTimestamp(sourceTimeStamp);
+                    m_audioSample->setSequenceNumber(sourceTimeStamp);
+
 					pushSample(m_audioSample);
 					m_audioSample.reset();
 				}
@@ -401,6 +423,8 @@ void FfmpegDecoder::onLinkFormatChanged(SharedMediaPad pad, SharedMediaFormat fo
 						sourceFormat->addAttribute("width", m_videoCodec->width);
 						sourceFormat->addAttribute("height", m_videoCodec->height);
 						sourceFormat->addAttribute("format", FfmpegResources::getAvPixelFormatName(m_videoCodec->pix_fmt));
+                        sourceFormat->addAttribute("timeBaseNum", m_videoCodec->time_base.num);
+                        sourceFormat->addAttribute("timeBaseDen", m_videoCodec->time_base.den/m_videoCodec->ticks_per_frame);
 					}
 					else
 					{
@@ -451,6 +475,20 @@ void FfmpegDecoder::onLinkFormatChanged(SharedMediaPad pad, SharedMediaFormat fo
 						sourceFormat->addAttribute("format", format->attribute("format")->toString());
 						m_videoCodec->pix_fmt=FfmpegResources::getAvPixelFormat(format->attribute("format")->toString());
 					}
+                    if(format->exists("timeBaseNum"))
+                    {
+                        int value=format->attribute("timeBaseNum")->toInt();
+
+                        sourceFormat->addAttribute("timeBaseNum", value);
+                        m_videoCodec->time_base.num=value;
+                    }
+                    if(format->exists("timeBaseDen"))
+                    {
+                        int value=format->attribute("timeBaseDen")->toInt();
+
+                        sourceFormat->addAttribute("timeBaseDen", value);
+                        m_videoCodec->time_base.den=value;
+                    }
 				}
 			}
 			else if(format->isAudio())
@@ -478,6 +516,8 @@ void FfmpegDecoder::onLinkFormatChanged(SharedMediaPad pad, SharedMediaFormat fo
 						sourceFormat->addAttribute("sampleRate", m_audioCodec->sample_rate);
 						sourceFormat->addAttribute("channels", m_audioCodec->channels);
 						sourceFormat->addAttribute("format", (int)FfmpegResources::getAudioFormat(m_audioCodec->sample_fmt));
+                        sourceFormat->addAttribute("timeBaseNum", m_audioCodec->time_base.num);
+                        sourceFormat->addAttribute("timeBaseDen", m_audioCodec->time_base.den/m_audioCodec->ticks_per_frame);
 					}
 					else
 					{
@@ -528,6 +568,20 @@ void FfmpegDecoder::onLinkFormatChanged(SharedMediaPad pad, SharedMediaFormat fo
 						sourceFormat->addAttribute("format", format->attribute("format")->toInt());
 						m_audioCodec->sample_fmt=FfmpegResources::getAudioFormat((Limitless::AudioSampleFormat)format->attribute("format")->toInt());
 					}
+                    if(format->exists("timeBaseNum"))
+                    {
+                        int value=format->attribute("timeBaseNum")->toInt();
+
+                        sourceFormat->addAttribute("timeBaseNum", value);
+                        m_videoCodec->time_base.num=value;
+                    }
+                    if(format->exists("timeBaseDen"))
+                    {
+                        int value=format->attribute("timeBaseDen")->toInt();
+
+                        sourceFormat->addAttribute("timeBaseDen", value);
+                        m_videoCodec->time_base.den=value;
+                    }
 				}
 			}
 

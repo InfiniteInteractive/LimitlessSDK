@@ -151,11 +151,12 @@ bool FfmpegEncoder::initialize(const Attributes &attributes)
 	
 	Strings profiles;
 
-	profiles.push_back("Base");
+	profiles.push_back("Baseline");
 	profiles.push_back("Main");
 	profiles.push_back("High");
 
-	addAttribute("profiles", profiles[0], profiles);
+	addAttribute("profile", profiles[0], profiles);
+    addAttribute("gop", 30);
 
 //	queryFormats();
 //
@@ -207,6 +208,8 @@ bool FfmpegEncoder::processSample(SharedMediaPad sinkPad, SharedMediaSample samp
 			m_wasEnabled=false;
 
 			pushSample(eventSample);
+
+            closeEncoder();
 		}
 		return true;
 	}
@@ -219,6 +222,9 @@ bool FfmpegEncoder::processSample(SharedMediaPad sinkPad, SharedMediaSample samp
 
 		if(imageSample == SharedImageSample())
 			return false;
+
+        if(m_videoEncoder==NULL)
+            openEncoder();
 
 //		imageSample->save("encoderImg.ppm");
 
@@ -260,10 +266,13 @@ bool FfmpegEncoder::processSample(SharedMediaPad sinkPad, SharedMediaSample samp
 
 		//m_frame->pts=imageSample->sequenceNumber()*1001;
 
-		AVRational rational={1, 48000};//time stamp comming from audio clock at 48khz
-		m_frame->pts=av_rescale_q(imageSample->sourceTimestamp(), rational, m_videoEncoder->time_base);
+//		AVRational rational={1, 48000};//time stamp comming from audio clock at 48khz
+//        m_frame->pts=av_rescale_q(imageSample->sourceTimestamp(), rational, m_videoEncoder->time_base);
 
-//		OutputDebugStringA((boost::format("encode frame: seq:%d, pts time:%d\n")%imageSample->sequenceNumber()%m_frame->pts).str().c_str());
+        AVRational rational={1, 1000000};//media pipeline in useconds
+		m_frame->pts=av_rescale_q(imageSample->timestamp(), rational, m_videoEncoder->time_base);
+
+		OutputDebugStringA((boost::format("encode frame: seq:%d, pts time:%d\n")%imageSample->sequenceNumber()%m_frame->pts).str().c_str());
 
 //		AVRational rational={1, 48000};//comming from audio clock at 48khz
 //		m_frame->pts=av_rescale_q(imageSample->sourceTimestamp(), rational,m_videoEncoder->time_base);
@@ -638,101 +647,184 @@ void FfmpegEncoder::onLinkFormatChanged(SharedMediaPad pad, SharedMediaFormat fo
 			(format->attribute("mime")->toString() == "image/raw"))
 		{
 			m_isVideoEncoder=true;
-	//		CodecDetails::iterator iter=std::find(m_accessibleCodecs.begin(), m_accessibleCodecs.end(), m_videoCodecs[m_currentVideoEncoder].id);
-			FfmpegCodecs codecs=FfmpegResources::instance().codecs();
 
-			FfmpegCodecs::iterator iter=std::find(codecs.begin(), codecs.end(), m_videoCodecs[m_currentVideoEncoder].id);
+            if(format->exists("width"))
+            {
+                m_width=format->attribute("width")->toInt();
+                attribute("width")->fromInt(m_width);
+            }
+            if(format->exists("height"))
+            {
+                m_height=format->attribute("height")->toInt();
+                attribute("height")->fromInt(m_height);
+            }
+            updateVideoEncoderAttributes();
 
-	//		if(iter != m_accessibleCodecs.end())
-			if(iter!=codecs.end())
-			{
-				MediaFormat sourceFormat;
-
-				sourceFormat.addAttribute("mime", iter->mime);
-				if(format->exists("width"))
-				{
-					sourceFormat.addAttribute("width", format->attribute("width")->toString());
-					m_videoEncoder->width=format->attribute("width")->toInt();
-					attribute("width")->fromInt(format->attribute("width")->toInt());
-				}
-				if(format->exists("height"))
-				{
-					sourceFormat.addAttribute("height", format->attribute("height")->toString());
-					m_videoEncoder->height=format->attribute("height")->toInt();
-					attribute("height")->fromInt(format->attribute("height")->toInt());
-				}
-
-				updateVideoEncoderAttributes();
-				//			sourceFormat.addAttribute("bitrate", 3000000);
-				//			sourceFormat.addAttribute("timeBaseNum", 1);
-				//			sourceFormat.addAttribute("timeBaseDen", 15);
-				//			sourceFormat.addAttribute("keyframeRate", 10);
-				//			sourceFormat.addAttribute("format", "YUV420P");
-				sourceFormat.addAttribute("bitrate", m_videoEncoder->bit_rate);
-				sourceFormat.addAttribute("timeBaseNum", m_videoEncoder->time_base.num);
-				sourceFormat.addAttribute("timeBaseDen", m_videoEncoder->time_base.den);
-				sourceFormat.addAttribute("keyframeRate", m_videoEncoder->gop_size);
-				sourceFormat.addAttribute("format", "YUV420P");
-				sourceFormat.addAttribute("ffmpegCodecContext", m_videoEncoderId);
-
-				//			//default settings
-				//			m_videoEncoder->bit_rate = 400000;
-				//			//frames per second
-				//			AVRational rational={1, 15};
-				//			m_videoEncoder->time_base=rational;
-				////			m_videoEncoder->time_base= (AVRational){1,15};
-				//			m_videoEncoder->gop_size=10; /* emit one intra frame every ten frames */
-				//			m_videoEncoder->max_b_frames=1;
-				//			m_videoEncoder->pix_fmt=AV_PIX_FMT_YUV420P;
-
-				SharedMediaPads sourcePads=getSourcePads();
-
-				BOOST_FOREACH(SharedMediaPad &sourcePad, sourcePads)
-				{
-					sourcePad->setFormat(sourceFormat);
-				}
-			}
+//	//		CodecDetails::iterator iter=std::find(m_accessibleCodecs.begin(), m_accessibleCodecs.end(), m_videoCodecs[m_currentVideoEncoder].id);
+//			FfmpegCodecs codecs=FfmpegResources::instance().codecs();
+//
+//			FfmpegCodecs::iterator iter=std::find(codecs.begin(), codecs.end(), m_videoCodecs[m_currentVideoEncoder].id);
+//
+//	//		if(iter != m_accessibleCodecs.end())
+//			if(iter!=codecs.end())
+//			{
+//				MediaFormat sourceFormat;
+//
+//				sourceFormat.addAttribute("mime", iter->mime);
+//				if(format->exists("width"))
+//				{
+//					sourceFormat.addAttribute("width", format->attribute("width")->toString());
+//					m_videoEncoder->width=format->attribute("width")->toInt();
+//					attribute("width")->fromInt(format->attribute("width")->toInt());
+//				}
+//				if(format->exists("height"))
+//				{
+//					sourceFormat.addAttribute("height", format->attribute("height")->toString());
+//					m_videoEncoder->height=format->attribute("height")->toInt();
+//					attribute("height")->fromInt(format->attribute("height")->toInt());
+//				}
+//
+//				updateVideoEncoderAttributes();
+//				//			sourceFormat.addAttribute("bitrate", 3000000);
+//				//			sourceFormat.addAttribute("timeBaseNum", 1);
+//				//			sourceFormat.addAttribute("timeBaseDen", 15);
+//				//			sourceFormat.addAttribute("keyframeRate", 10);
+//				//			sourceFormat.addAttribute("format", "YUV420P");
+//				sourceFormat.addAttribute("bitrate", m_videoEncoder->bit_rate);
+//				sourceFormat.addAttribute("timeBaseNum", m_videoEncoder->time_base.num);
+//				sourceFormat.addAttribute("timeBaseDen", m_videoEncoder->time_base.den);
+//				sourceFormat.addAttribute("keyframeRate", m_videoEncoder->gop_size);
+//				sourceFormat.addAttribute("format", "YUV420P");
+//				sourceFormat.addAttribute("ffmpegCodecContext", m_videoEncoderId);
+//
+//				//			//default settings
+//				//			m_videoEncoder->bit_rate = 400000;
+//				//			//frames per second
+//				//			AVRational rational={1, 15};
+//				//			m_videoEncoder->time_base=rational;
+//				////			m_videoEncoder->time_base= (AVRational){1,15};
+//				//			m_videoEncoder->gop_size=10; /* emit one intra frame every ten frames */
+//				//			m_videoEncoder->max_b_frames=1;
+//				//			m_videoEncoder->pix_fmt=AV_PIX_FMT_YUV420P;
+//
+//				SharedMediaPads sourcePads=getSourcePads();
+//
+//				BOOST_FOREACH(SharedMediaPad &sourcePad, sourcePads)
+//				{
+//					sourcePad->setFormat(sourceFormat);
+//				}
+//			}
 		}
 		else if(format->attribute("mime")->toString()=="audio/raw")
 		{
 			m_isVideoEncoder=false;
-
-			FfmpegCodecs codecs=FfmpegResources::instance().codecs();
-			FfmpegCodecs::iterator iter=std::find(codecs.begin(), codecs.end(), m_audioCodecs[m_currentAudioEncoder].id);
-
-			if(iter!=codecs.end())
-			{
-				MediaFormat sourceFormat;
-
-				updateAudioEncoderAttributes();
-
-				sourceFormat.addAttribute("mime", iter->mime);
-
-				sourceFormat.addAttribute("bitrate", m_audioEncoder->bit_rate);
-				sourceFormat.addAttribute("sampleRate", m_audioEncoder->sample_rate);
-				sourceFormat.addAttribute("timeBaseNum", m_audioEncoder->time_base.num);
-				sourceFormat.addAttribute("timeBaseDen", m_audioEncoder->time_base.den);
-				sourceFormat.addAttribute("channels", m_audioEncoder->channels);
-
-				std::string sampleFormat;
-
-				if(m_audioEncoder->sample_fmt==AV_SAMPLE_FMT_FLTP)
-					sampleFormat="FloatP";
-
-				sourceFormat.addAttribute("sampleFormat", sampleFormat);
-				sourceFormat.addAttribute("frameSize", m_audioEncoder->frame_size);
-
-				sourceFormat.addAttribute("ffmpegCodecContext", m_audioEncoderId);
-
-				SharedMediaPads sourcePads=getSourcePads();
-
-				BOOST_FOREACH(SharedMediaPad &sourcePad, sourcePads)
-				{
-					sourcePad->setFormat(sourceFormat);
-				}
-			}
+            updateAudioEncoderAttributes();
+//			FfmpegCodecs codecs=FfmpegResources::instance().codecs();
+//			FfmpegCodecs::iterator iter=std::find(codecs.begin(), codecs.end(), m_audioCodecs[m_currentAudioEncoder].id);
+//
+//			if(iter!=codecs.end())
+//			{
+//				MediaFormat sourceFormat;
+//
+//				updateAudioEncoderAttributes();
+//
+//				sourceFormat.addAttribute("mime", iter->mime);
+//
+//				sourceFormat.addAttribute("bitrate", m_audioEncoder->bit_rate);
+//				sourceFormat.addAttribute("sampleRate", m_audioEncoder->sample_rate);
+//				sourceFormat.addAttribute("timeBaseNum", m_audioEncoder->time_base.num);
+//				sourceFormat.addAttribute("timeBaseDen", m_audioEncoder->time_base.den);
+//				sourceFormat.addAttribute("channels", m_audioEncoder->channels);
+//
+//				std::string sampleFormat;
+//
+//				if(m_audioEncoder->sample_fmt==AV_SAMPLE_FMT_FLTP)
+//					sampleFormat="FloatP";
+//
+//				sourceFormat.addAttribute("sampleFormat", sampleFormat);
+//				sourceFormat.addAttribute("frameSize", m_audioEncoder->frame_size);
+//
+//				sourceFormat.addAttribute("ffmpegCodecContext", m_audioEncoderId);
+//
+//				SharedMediaPads sourcePads=getSourcePads();
+//
+//				BOOST_FOREACH(SharedMediaPad &sourcePad, sourcePads)
+//				{
+//					sourcePad->setFormat(sourceFormat);
+//				}
+//			}
 		}
+
+        
+        updateLink();
 	}
+}
+
+void FfmpegEncoder::updateLink()
+{
+    if(m_isVideoEncoder)
+    {
+        FfmpegCodecs codecs=FfmpegResources::instance().codecs();
+        FfmpegCodecs::iterator iter=std::find(codecs.begin(), codecs.end(), m_videoCodecs[m_currentVideoEncoder].id);
+
+        if(iter!=codecs.end())
+        {
+            MediaFormat sourceFormat;
+
+            sourceFormat.addAttribute("mime", iter->mime);
+
+            sourceFormat.addAttribute("width", m_width);
+            sourceFormat.addAttribute("height", m_height);
+            sourceFormat.addAttribute("bitrate", m_videoEncoder->bit_rate);
+            sourceFormat.addAttribute("timeBaseNum", m_videoEncoder->time_base.num);
+            sourceFormat.addAttribute("timeBaseDen", m_videoEncoder->time_base.den);
+            sourceFormat.addAttribute("keyframeRate", m_videoEncoder->gop_size);
+            sourceFormat.addAttribute("format", "YUV420P");
+            sourceFormat.addAttribute("ffmpegCodecContext", m_videoEncoderId);
+
+            SharedMediaPads sourcePads=getSourcePads();
+
+            BOOST_FOREACH(SharedMediaPad &sourcePad, sourcePads)
+            {
+                sourcePad->setFormat(sourceFormat);
+            }
+        }
+    }
+    else
+    {
+        FfmpegCodecs codecs=FfmpegResources::instance().codecs();
+        FfmpegCodecs::iterator iter=std::find(codecs.begin(), codecs.end(), m_audioCodecs[m_currentAudioEncoder].id);
+
+        if(iter!=codecs.end())
+        {
+            MediaFormat sourceFormat;
+
+            sourceFormat.addAttribute("mime", iter->mime);
+
+            sourceFormat.addAttribute("bitrate", m_audioEncoder->bit_rate);
+            sourceFormat.addAttribute("sampleRate", m_audioEncoder->sample_rate);
+            sourceFormat.addAttribute("timeBaseNum", m_audioEncoder->time_base.num);
+            sourceFormat.addAttribute("timeBaseDen", m_audioEncoder->time_base.den);
+            sourceFormat.addAttribute("channels", m_audioEncoder->channels);
+
+            std::string sampleFormat;
+
+            if(m_audioEncoder->sample_fmt==AV_SAMPLE_FMT_FLTP)
+                sampleFormat="FloatP";
+
+            sourceFormat.addAttribute("sampleFormat", sampleFormat);
+            sourceFormat.addAttribute("frameSize", m_audioEncoder->frame_size);
+
+            sourceFormat.addAttribute("ffmpegCodecContext", m_audioEncoderId);
+
+            SharedMediaPads sourcePads=getSourcePads();
+
+            BOOST_FOREACH(SharedMediaPad &sourcePad, sourcePads)
+            {
+                sourcePad->setFormat(sourceFormat);
+            }
+        }
+    }
 }
 
 void FfmpegEncoder::onAttributeChanged(std::string name, SharedAttribute attribute)
@@ -811,7 +903,7 @@ int FfmpegEncoder::getVideoEncoderIndexUi(std::string name)
 		if(m_videoCodecs[i].uiName == name)
 			return i;
 	}
-	return -1;
+	return 0;
 }
 
 int FfmpegEncoder::getVideoEncoderIndexFromId(AVCodecID id)
@@ -841,17 +933,116 @@ int FfmpegEncoder::getAudioEncoderIndexUi(std::string name)
 		if(m_audioCodecs[i].uiName==name)
 			return i;
 	}
-	return -1;
+	return 0;
+}
+
+void FfmpegEncoder::openEncoder()
+{
+    if(m_isVideoEncoder)
+    {
+        if((m_currentVideoEncoder>=0)&&(m_currentVideoEncoder<m_videoCodecs.size()))
+        {
+            AVCodec *avCodec=m_videoCodecs[m_currentVideoEncoder].avCodec;
+            int avError;
+
+            m_videoEncoder=avcodec_alloc_context3(avCodec);
+
+            AVDictionary *avDictionary=NULL;
+
+            int optError;
+
+            if(avCodec->id==AV_CODEC_ID_H264)
+            {
+                optError=av_opt_set(m_videoEncoder->priv_data, "preset", "ultrafast", 0);
+                optError=av_opt_set(m_videoEncoder->priv_data, "profile", "baseline", 0);
+                optError=av_opt_set_double(m_videoEncoder->priv_data, "crf", 18, 0);
+            }
+
+            m_videoEncoder->bit_rate=attribute("bitrate")->toInt();
+            m_videoEncoder->width=attribute("width")->toInt();
+            m_videoEncoder->height=attribute("height")->toInt();
+
+            AVRational rational={1001, 30000};
+
+            m_videoEncoder->time_base=rational;
+            m_videoEncoder->gop_size=10; // emit one intra frame every ten frames
+            m_videoEncoder->max_b_frames=1;
+            m_videoEncoder->pix_fmt=AV_PIX_FMT_YUV420P;
+
+            m_videoEncoder->thread_count=6;
+
+            if((avError=avcodec_open2(m_videoEncoder, avCodec, NULL))<0)
+            {
+                char errorStr[64];
+
+                av_strerror(avError, errorStr, 64);
+            }
+
+            m_videoEncoderId=FfmpegResources::pushCodecContext(this, m_videoEncoder);
+
+            updateLink();
+        }
+    }
+    else
+    {
+        if((m_currentAudioEncoder>=0)&&(m_currentAudioEncoder<m_audioCodecs.size()))
+        {
+            AVCodec *avCodec=m_audioCodecs[m_currentAudioEncoder].avCodec;
+            int avError;
+
+            m_audioEncoder=avcodec_alloc_context3(avCodec);
+
+            //default settings
+            m_audioEncoder->bit_rate=attribute("bitrate")->toInt();
+            m_audioEncoder->sample_fmt=AV_SAMPLE_FMT_FLTP;
+            m_audioEncoder->sample_rate=48000;
+            m_audioEncoder->channel_layout=AV_CH_LAYOUT_STEREO;
+            m_audioEncoder->channels=2;
+
+            if((avError=avcodec_open2(m_audioEncoder, avCodec, NULL))<0)//&avDictionary)) < 0)
+            {
+                char errorStr[64];
+
+                av_strerror(avError, errorStr, 64);
+            }
+
+            m_audioEncoderId=FfmpegResources::pushCodecContext(this, m_audioEncoder);
+
+            updateLink();
+        }
+    }
+}
+
+void FfmpegEncoder::closeEncoder()
+{
+    if(m_videoEncoder!=NULL)
+    {
+        FfmpegResources::popCodecContext(m_videoEncoderId);
+
+        avcodec_close(m_videoEncoder);
+        av_free(m_videoEncoder);
+        m_videoEncoder=NULL;
+    }
+
+    if(m_audioEncoder!=NULL)
+    {
+        FfmpegResources::popCodecContext(m_audioEncoderId);
+
+        avcodec_close(m_audioEncoder);
+        av_free(m_audioEncoder);
+        m_audioEncoder=NULL;
+    }
 }
 
 void FfmpegEncoder::updateVideoEncoderAttributes()
 {
-	if(m_videoEncoder != NULL)
-	{
-		avcodec_close(m_videoEncoder);
-		av_free(m_videoEncoder);
-		m_videoEncoder=NULL;
-	}
+//	if(m_videoEncoder != NULL)
+//	{
+//		avcodec_close(m_videoEncoder);
+//		av_free(m_videoEncoder);
+//		m_videoEncoder=NULL;
+//	}
+    closeEncoder();
 
 	//Backup current attributes to set new
 	Attributes attributesBackup=attributes();
@@ -867,82 +1058,88 @@ void FfmpegEncoder::updateVideoEncoderAttributes()
 
 	if((m_currentVideoEncoder >= 0) && (m_currentVideoEncoder < m_videoCodecs.size()))
 	{
-		AVCodec *avCodec=m_videoCodecs[m_currentVideoEncoder].avCodec;
-		int avError;
-
-		m_videoEncoder=avcodec_alloc_context3(avCodec);
-
-		AVDictionary *avDictionary=NULL;
-
-		int optError;
-
-		if(avCodec->id == AV_CODEC_ID_H264)
-		{
-			optError=av_opt_set(m_videoEncoder->priv_data, "preset", "medium", 0);
-			optError=av_opt_set(m_videoEncoder->priv_data, "profile", "baseline", 0);
-			optError=av_opt_set_double(m_videoEncoder->priv_data, "crf", 18, 0);
-		}
-
-		//default settings
-		m_videoEncoder->bit_rate = 13000000;
-
-		m_videoEncoder->width=attribute("width")->toInt();
-		m_videoEncoder->height=attribute("height")->toInt();
-		//frames per second
-//		AVRational rational={1, 15};
-//		AVRational rational={1, 24};
-        AVRational rational={1001, 30000};
-
-		m_videoEncoder->time_base=rational;
-		//			m_videoEncoder->time_base= (AVRational){1,15};
-		m_videoEncoder->gop_size=10; /* emit one intra frame every ten frames */
-		m_videoEncoder->max_b_frames=1;
-		m_videoEncoder->pix_fmt=AV_PIX_FMT_YUV420P;
-
-		attribute("width")->fromInt(m_videoEncoder->width);
-		attribute("height")->fromInt(m_videoEncoder->height);
-		attribute("bitrate")->fromInt(m_videoEncoder->bit_rate);
-
-		m_videoEncoder->thread_count=6;
-///		ctx->bit_rate = 500*1000;
-//		m_videoEncoder->bit_rate_tolerance = 0;
-//		m_videoEncoder->rc_max_rate = 0;
-//		m_videoEncoder->rc_buffer_size = 0;
-///		ctx->gop_size = 40;
-//		m_videoEncoder->max_b_frames = 3;
-//		m_videoEncoder->b_frame_strategy = 1;
-//		m_videoEncoder->coder_type = 1;
-//		m_videoEncoder->me_cmp = 1;
-//		m_videoEncoder->me_range = 16;
-//		m_videoEncoder->qmin = 10;
-//		m_videoEncoder->qmax = 51;
-//		m_videoEncoder->scenechange_threshold = 40;
-//		m_videoEncoder->flags |= CODEC_FLAG_LOOP_FILTER;
-//		m_videoEncoder->me_method = ME_HEX;
-//		m_videoEncoder->me_subpel_quality = 5;
-//		m_videoEncoder->i_quant_factor = 0.71;
-//		m_videoEncoder->qcompress = 0.6;
-//		m_videoEncoder->max_qdiff = 4;
-
-//		m_videoEncoder->profile=FF_PROFILE_H264_BASELINE;
-
-//		av_dict_set((AVDictionary **)m_videoEncoder->priv_data, "vprofile", "baseline", 0);
-
-//		av_dict_set(&avDictionary, "vprofile", "baseline", 0);
-
-//		av_dict_set(&avDictionary, "preset", "ultrafast", 0);
-
-		char errorStr[64];
-
-		if((avError=avcodec_open2(m_videoEncoder, avCodec, NULL)) < 0)//&avDictionary)) < 0)
-		{
-			av_strerror(avError, errorStr, 64);
-		}
-
-		m_videoEncoderId=FfmpegResources::pushCodecContext(m_videoEncoder);
+//		AVCodec *avCodec=m_videoCodecs[m_currentVideoEncoder].avCodec;
+//		int avError;
+//
+//		m_videoEncoder=avcodec_alloc_context3(avCodec);
+//
+//		AVDictionary *avDictionary=NULL;
+//
+//		int optError;
+//
+//		if(avCodec->id == AV_CODEC_ID_H264)
+//		{
+////			optError=av_opt_set(m_videoEncoder->priv_data, "preset", "medium", 0);
+//            optError=av_opt_set(m_videoEncoder->priv_data, "preset", "ultrafast", 0);
+//			optError=av_opt_set(m_videoEncoder->priv_data, "profile", "baseline", 0);
+//			optError=av_opt_set_double(m_videoEncoder->priv_data, "crf", 18, 0);
+//
+////            optError=av_opt_set(m_videoEncoder->priv_data, "tune", "zerolatency", 0);
+////            optError=av_opt_set(m_videoEncoder->priv_data, "x264opts", "no-mbtree:sliced-threads:sync-lookahead=0", 0);
+//		}
+//
+//		//default settings
+//		m_videoEncoder->bit_rate = 13000000;
+//
+//		m_videoEncoder->width=attribute("width")->toInt();
+//		m_videoEncoder->height=attribute("height")->toInt();
+//		//frames per second
+////		AVRational rational={1, 15};
+////		AVRational rational={1, 24};
+//        AVRational rational={1001, 30000};
+//
+//		m_videoEncoder->time_base=rational;
+//		//			m_videoEncoder->time_base= (AVRational){1,15};
+//		m_videoEncoder->gop_size=10; /* emit one intra frame every ten frames */
+//		m_videoEncoder->max_b_frames=1;
+//		m_videoEncoder->pix_fmt=AV_PIX_FMT_YUV420P;
+//
+//		attribute("width")->fromInt(m_videoEncoder->width);
+//		attribute("height")->fromInt(m_videoEncoder->height);
+//		attribute("bitrate")->fromInt(m_videoEncoder->bit_rate);
+//
+//		m_videoEncoder->thread_count=6;
+/////		ctx->bit_rate = 500*1000;
+////		m_videoEncoder->bit_rate_tolerance = 0;
+////		m_videoEncoder->rc_max_rate = 0;
+////		m_videoEncoder->rc_buffer_size = 0;
+/////		ctx->gop_size = 40;
+////		m_videoEncoder->max_b_frames = 3;
+////		m_videoEncoder->b_frame_strategy = 1;
+////		m_videoEncoder->coder_type = 1;
+////		m_videoEncoder->me_cmp = 1;
+////		m_videoEncoder->me_range = 16;
+////		m_videoEncoder->qmin = 10;
+////		m_videoEncoder->qmax = 51;
+////		m_videoEncoder->scenechange_threshold = 40;
+////		m_videoEncoder->flags |= CODEC_FLAG_LOOP_FILTER;
+////		m_videoEncoder->me_method = ME_HEX;
+////		m_videoEncoder->me_subpel_quality = 5;
+////		m_videoEncoder->i_quant_factor = 0.71;
+////		m_videoEncoder->qcompress = 0.6;
+////		m_videoEncoder->max_qdiff = 4;
+//
+////		m_videoEncoder->profile=FF_PROFILE_H264_BASELINE;
+//
+////		av_dict_set((AVDictionary **)m_videoEncoder->priv_data, "vprofile", "baseline", 0);
+//
+////		av_dict_set(&avDictionary, "vprofile", "baseline", 0);
+//
+////		av_dict_set(&avDictionary, "preset", "ultrafast", 0);
+//
+//		char errorStr[64];
+//
+//		if((avError=avcodec_open2(m_videoEncoder, avCodec, NULL)) < 0)//&avDictionary)) < 0)
+//		{
+//			av_strerror(avError, errorStr, 64);
+//		}
+//
+//		m_videoEncoderId=FfmpegResources::pushCodecContext(this, m_videoEncoder);
+        openEncoder();
 
 		const AVOption *option=NULL;
 
+        m_videoOptions.clear();
 		while((option=av_opt_next(m_videoEncoder, option)) != NULL)
 		{
 			m_videoOptions.push_back(CodecOption(option));
@@ -954,13 +1151,13 @@ void FfmpegEncoder::updateVideoEncoderAttributes()
 
 void FfmpegEncoder::updateAudioEncoderAttributes()
 {
-	if(m_audioEncoder!=NULL)
-	{
-		avcodec_close(m_audioEncoder);
-		av_free(m_audioEncoder);
-		m_audioEncoder=NULL;
-	}
-
+//	if(m_audioEncoder!=NULL)
+//	{
+//		avcodec_close(m_audioEncoder);
+//		av_free(m_audioEncoder);
+//		m_audioEncoder=NULL;
+//	}
+    closeEncoder();
 	//Backup current attributes to set new
 	Attributes attributesBackup=attributes();
 	Attributes &localAttributes=attributes();
@@ -975,37 +1172,39 @@ void FfmpegEncoder::updateAudioEncoderAttributes()
 
 	if((m_currentAudioEncoder>=0)&&(m_currentAudioEncoder < m_audioCodecs.size()))
 	{
-		AVCodec *avCodec=m_audioCodecs[m_currentAudioEncoder].avCodec;
-		int avError;
-
-		m_audioEncoder=avcodec_alloc_context3(avCodec);
-
-		//default settings
-		m_audioEncoder->bit_rate=128000;
-
-		m_audioEncoder->sample_fmt=AV_SAMPLE_FMT_FLTP;
-		m_audioEncoder->sample_rate=48000;
-		m_audioEncoder->channel_layout=AV_CH_LAYOUT_STEREO;
-		m_audioEncoder->channels=2;
-
-		attribute("bitrate")->fromInt(m_audioEncoder->bit_rate);
-
-		char errorStr[64];
-
-		if((avError=avcodec_open2(m_audioEncoder, avCodec, NULL)) < 0)//&avDictionary)) < 0)
-		{
-			av_strerror(avError, errorStr, 64);
-		}
-
-		m_audioEncoderId=FfmpegResources::pushCodecContext(m_audioEncoder);
+//		AVCodec *avCodec=m_audioCodecs[m_currentAudioEncoder].avCodec;
+//		int avError;
+//
+//		m_audioEncoder=avcodec_alloc_context3(avCodec);
+//
+//		//default settings
+//		m_audioEncoder->bit_rate=128000;
+//
+//		m_audioEncoder->sample_fmt=AV_SAMPLE_FMT_FLTP;
+//		m_audioEncoder->sample_rate=48000;
+//		m_audioEncoder->channel_layout=AV_CH_LAYOUT_STEREO;
+//		m_audioEncoder->channels=2;
+//
+//		attribute("bitrate")->fromInt(m_audioEncoder->bit_rate);
+//
+//		char errorStr[64];
+//
+//		if((avError=avcodec_open2(m_audioEncoder, avCodec, NULL)) < 0)//&avDictionary)) < 0)
+//		{
+//			av_strerror(avError, errorStr, 64);
+//		}
+//
+//		m_audioEncoderId=FfmpegResources::pushCodecContext(this, m_audioEncoder);
+        openEncoder();
 
 		const AVOption *option=NULL;
 
+        m_audioOptions.clear();
 		while((option=av_opt_next(m_audioEncoder, option))!=NULL)
 		{
-			m_videoOptions.push_back(CodecOption(option));
+			m_audioOptions.push_back(CodecOption(option));
 
-			buildAttribute(m_videoEncoder, option, "codec_");
+			buildAttribute(m_audioEncoder, option, "codec_");
 		}
 	}
 }

@@ -218,6 +218,8 @@ void FfmpegInput::readThread()
 					m_lastFrameTime=av_rescale_q(packet->pts, stream->time_base, timeBase);
 					sourceSample->setTimestamp(m_playStreamTime+m_loopTime+m_lastFrameTime);
 					sourceSample->setSourceTimestamp(m_lastFrameTime);
+
+                    m_lastFrameTime+=packet->duration;
 //					pushSample(mediaPad, sourceSample);
 //					OutputDebugStringA((boost::format("****FFMpegInput queued sample 0x%08x\n")%sourceSample.get()).str().c_str());
 					streamPad.m_queue.push_back(sourceSample);
@@ -419,13 +421,15 @@ IMediaFilter::StateChange FfmpegInput::onReady()
 			SharedMediaFormat mediaFormat(new MediaFormat());
 			std::string mimeType=(boost::format("video/%s")%codec->name).str();
 
-			unsigned int contextId=FfmpegResources::pushCodecContext(codecContext);
+			unsigned int contextId=FfmpegResources::pushCodecContext(this, codecContext);
 
 			mediaFormat->addAttribute("mime", mimeType);
 			mediaFormat->addAttribute("width", codecContext->width);
 			mediaFormat->addAttribute("height", codecContext->height);
 			mediaFormat->addAttribute("format", FfmpegResources::getAvPixelFormatName(codecContext->pix_fmt));
 			mediaFormat->addAttribute("ffmpegCodecContext", contextId);
+            mediaFormat->addAttribute("timeBaseNum", codecContext->time_base.num);
+            mediaFormat->addAttribute("timeBaseDen", codecContext->time_base.den/codecContext->ticks_per_frame);
 
 			if(m_streamPads.size() < i+1)
 				m_streamPads.resize(i+1);
@@ -439,7 +443,7 @@ IMediaFilter::StateChange FfmpegInput::onReady()
 			SharedMediaFormat mediaFormat(new MediaFormat());
 			std::string mimeType=(boost::format("audio/%s")%codec->name).str();
 
-			unsigned int contextId=FfmpegResources::pushCodecContext(codecContext);
+			unsigned int contextId=FfmpegResources::pushCodecContext(this, codecContext);
 
 			int sample_rate; ///< samples per second
 			int channels;    ///< number of audio channels
@@ -456,6 +460,8 @@ IMediaFilter::StateChange FfmpegInput::onReady()
 			mediaFormat->addAttribute("channels", codecContext->channels);
 			mediaFormat->addAttribute("format", (int)FfmpegResources::getAudioFormat(codecContext->sample_fmt));
 			mediaFormat->addAttribute("ffmpegCodecContext", contextId);
+            mediaFormat->addAttribute("timeBaseNum", codecContext->time_base.num);
+            mediaFormat->addAttribute("timeBaseDen", codecContext->time_base.den/codecContext->ticks_per_frame);
 
 			if(m_streamPads.size() < i+1)
 				m_streamPads.resize(i+1);

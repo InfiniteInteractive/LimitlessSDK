@@ -16,10 +16,15 @@ void avLogCallback(void *ptr, int level, const char* format, va_list args)
 	static char logEntry[2048];
 
 	vsnprintf(logEntry, 2048, format, args); 
-#ifdef DEBUG
-	OutputDebugStringA(logEntry);
-#endif //DEBUG
-	Limitless::Log::message("Ffmpeg", logEntry);
+//#ifdef DEBUG
+//	OutputDebugStringA(logEntry);
+//#endif //DEBUG
+    std::string system="Ffmpeg";
+    std::string subSystem="";
+
+    FfmpegResources::getContextSystem((AVCodecContext *)ptr, system, subSystem);
+
+    Limitless::Log::message(system, subSystem, logEntry);
 }
 
 
@@ -159,17 +164,35 @@ void FfmpegResources::registerAll()
 //#endif //DEBUG
 }
 
-unsigned int FfmpegResources::pushCodecContext(AVCodecContext *codecContext)
+unsigned int FfmpegResources::pushCodecContext(Limitless::IMediaFilter *mediaFilter, AVCodecContext *codecContext)
 {
 	FfmpegResources &resource=instance();
 
 	boost::unique_lock<boost::mutex> lock(resource.m_contextMutex);
 	
 	resource.m_codecContexts.insert(std::pair<unsigned int, AVCodecContext *>(resource.m_uniqueContextId, codecContext));
+    resource.m_codecContextsToFilter.insert(std::pair<AVCodecContext *, Limitless::IMediaFilter *>(codecContext, mediaFilter));
 
 	unsigned int id=resource.m_uniqueContextId++;
 
 	return id;
+}
+
+void FfmpegResources::popCodecContext(unsigned int id)
+{
+    FfmpegResources &resource=instance();
+
+    auto iter=resource.m_codecContexts.find(id);
+
+    if(iter!=resource.m_codecContexts.end())
+    {
+        auto filterIter=resource.m_codecContextsToFilter.find(iter->second);
+
+        if(filterIter!=resource.m_codecContextsToFilter.end())
+            resource.m_codecContextsToFilter.erase(filterIter);
+
+        resource.m_codecContexts.erase(iter);
+    }
 }
 
 AVCodecContext *FfmpegResources::getCodecContext(unsigned int id)
@@ -181,6 +204,26 @@ AVCodecContext *FfmpegResources::getCodecContext(unsigned int id)
 	if(iter != resource.m_codecContexts.end())
 		return iter->second;
 	return NULL;
+}
+
+
+void FfmpegResources::getContextSystem(AVCodecContext *ptr, std::string &system, std::string &subSystem)
+{
+    FfmpegResources &resource=instance();
+
+    if(ptr == nullptr)//assuming it is an output info
+    {
+        system="FfmpegOutput";
+        return;
+    }
+    
+    CodecContextFilterMap::iterator iter=resource.m_codecContextsToFilter.find(ptr);
+    
+    if(iter!=resource.m_codecContextsToFilter.end())
+    {
+        system=iter->second->typeName();
+        subSystem=iter->second->instance();
+    }
 }
 
 AVSampleFormat FfmpegResources::getAudioFormat(Limitless::AudioSampleFormat format)

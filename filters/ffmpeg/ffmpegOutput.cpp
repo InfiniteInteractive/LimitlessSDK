@@ -126,6 +126,10 @@ bool FfmpegOutput::processSample(SharedMediaPad sinkPad, SharedMediaSample sampl
                 avio_close(m_avFormatContext->pb);
                 m_firstSample=true;
 				m_firstAudioSample=true;
+                
+                std::string location=attribute("outputLocation")->toString();
+                std::string message="Closed "+location;
+                Log::message("FfmpegOutput", message);
             }
         }
     }
@@ -536,6 +540,9 @@ void FfmpegOutput::setupFormat()
 	//	if(codec == NULL)
 	//		return;
 	AVCodecContext *codecContext=FfmpegResources::getCodecContext(m_codecContextId);
+
+    if(codecContext == nullptr)
+        return;
 
 	m_videoStream=avformat_new_stream(m_avFormatContext, codecContext->codec);
 	//	m_videoStream=avformat_new_stream(m_avFormatContext, NULL);

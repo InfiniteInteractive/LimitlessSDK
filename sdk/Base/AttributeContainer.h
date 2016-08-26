@@ -22,6 +22,21 @@ public:
     virtual void attributeChanged(AttributeContainer *parent, std::string name)=0;
 };
 
+template<typename _Listener>
+class ChangeListnerPassthrough:public ChangeListener
+{
+public:
+    ChangeListnerPassthrough(_Listener *listener):m_listener(listener) {}
+
+    virtual void attributeChanged(Limitless::AttributeContainer *parent, std::string name)
+    {
+        m_listener->attributeChanged(parent, name);
+    }
+
+private:
+    _Listener *m_listener;
+};
+
 
 class BASE_EXPORT AttributeContainer:public IChangeNotify
 {

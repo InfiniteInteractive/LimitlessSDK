@@ -2,6 +2,7 @@
 #define _FfmpegResources_h_
 
 #include "Media/IAudioSample.h"
+#include "Media/IMediaFilter.h"
 
 extern "C"
 {
@@ -63,8 +64,11 @@ public:
 	static AVSampleFormat getAudioFormat(Limitless::AudioSampleFormat format);
 	static Limitless::AudioSampleFormat getAudioFormat(AVSampleFormat format);
 
-	static unsigned int pushCodecContext(AVCodecContext *codecContext);
+	static unsigned int pushCodecContext(Limitless::IMediaFilter *mediaFilter, AVCodecContext *codecContext);
+    static void popCodecContext(unsigned int id);
+
 	static AVCodecContext *getCodecContext(unsigned int id);
+    static void getContextSystem(AVCodecContext *ptr, std::string &system, std::string &subSystem);
 
 	static void registerAll();
 private:
@@ -81,7 +85,10 @@ private:
 	unsigned int m_uniqueContextId;
 
 	typedef std::map<unsigned int, AVCodecContext *> CodecContextMap;
+    typedef std::map<AVCodecContext *, Limitless::IMediaFilter *> CodecContextFilterMap;
+
 	CodecContextMap m_codecContexts;
+    CodecContextFilterMap m_codecContextsToFilter;
 };
 
 
