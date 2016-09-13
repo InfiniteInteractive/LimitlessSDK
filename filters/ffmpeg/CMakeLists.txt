@@ -36,6 +36,7 @@ set(ffmpeg_Sources
 	ffmpegcontrols.cpp
 	ffmpegDecoder.cpp
 	ffmpegEncoder.cpp
+	ffmpegEncoderOutput.cpp
 	ffmpegFrameSample.cpp
 	ffmpegInput.cpp
 	ffmpegInputAttributeView.cpp
@@ -53,6 +54,7 @@ set(ffmpeg_Headers
 	ffmpegcontrols.h
 	ffmpegDecoder.h
 	ffmpegEncoder.h
+	ffmpegEncoderOutput.h
 	ffmpegFrameSample.h
 	ffmpegInput.h
 	ffmpegInputAttributeView.h

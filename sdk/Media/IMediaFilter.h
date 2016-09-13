@@ -196,7 +196,20 @@ MEDIA_EXPORT MimeDetail parseMimeDetail(std::string mime);
 
 namespace traits
 {
-	template <typename T> struct type
+	template<typename _Plugin> struct enumerable
+	{
+		static bool value()
+		{
+			return false;
+		}
+
+		static std::vector<std::string> get()
+		{
+			return std::vector<std::string>();
+		}
+	};
+
+	template <typename _Plugin> struct type
 	{
 		static FilterType get()
 		{
@@ -204,7 +217,7 @@ namespace traits
 		}
 	};
 
-	template <typename T> struct category
+	template <typename _Plugin> struct category
 	{
 		static std::string get()
 		{

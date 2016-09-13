@@ -65,6 +65,8 @@ private:
 	bool m_firstSample;
 	Limitless::SharedMediaFormat m_outputFormat;
 	Limitless::MediaTime m_lastSyncTime;
+
+	uint64_t m_timeError;
 	
 	size_t m_imageSetSampleId;
     size_t m_eventSampleId;

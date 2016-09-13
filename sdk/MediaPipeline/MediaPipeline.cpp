@@ -16,6 +16,7 @@ using namespace Limitless;
 MediaPipeline::MediaPipeline(std::string instance, SharedMediaFilter parent):
 MediaFilterContainer(instance, parent),
 m_running(false),
+m_streamStartTime(0),
 m_streamPauseTime(0),
 m_framesInFlight(0),
 m_sampleBinSeq(0)
@@ -397,6 +398,7 @@ SharedMediaSample MediaPipeline::newSample(unsigned int type, size_t bin)
 
 #ifdef TRACK_SAMPLES
 //	OutputDebugStringA((boost::format("0x%08x(0x%08x) - newSample %u\n")%this%GetCurrentThreadId()%sample->uniqueId()).str().c_str());
+	sample->touch("NewSample");
 	OutputDebugStringA((boost::format("NewSample %u, bin (%d, %d)\n")%sample.get()%bin%sample->allocBin()).str().c_str());
 #endif //TRACK_SAMPLES
 

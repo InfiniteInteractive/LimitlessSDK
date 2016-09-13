@@ -23,6 +23,8 @@ CalibrationRig::~CalibrationRig()
 
 bool CalibrationRig::load(std::string location, std::string *error)
 {
+	m_cameraParams.clear();
+
 	FILE *file=fopen(location.c_str(), "r");
 
 	if(file==NULL)

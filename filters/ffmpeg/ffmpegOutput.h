@@ -3,6 +3,8 @@
 
 #include "Media/MediaPluginFactory.h"
 #include "Media/IMediaFilter.h"
+#include "Utilities/eventQueueThread.h"
+
 #include "ffmpegMediaFilter.h"
 #include "formatDescription.h"
 #include "ffmpegPacketSample.h"
@@ -29,6 +31,8 @@ extern "C"
 //};
 //typedef std::vector<FormatDescription> FormatDescriptions;
 
+typedef std::pair<Limitless::SharedMediaPad, Limitless::SharedMediaSample> PadSample;
+
 class FfmpegOutput:public Limitless::MediaAutoRegister<FfmpegOutput, FfmpegMediaFilter>
 {
 public:
@@ -41,6 +45,7 @@ public:
 	virtual Limitless::SharedPluginView getView();
 
 	virtual bool processSample(Limitless::SharedMediaPad sinkPad, Limitless::SharedMediaSample sample);
+	void processSampleThread(PadSample sample);
 
 protected:
 	//IMediaFilter
@@ -75,6 +80,7 @@ private:
 
 	bool m_enabled;
 	bool m_recording;
+	bool m_audioRecording;
 
 	Limitless::SharedPluginView m_view;
 	size_t m_imageSampleId;
@@ -92,6 +98,8 @@ private:
 	AVPacket m_pkt;
 	AVStream *m_audioStream;
 	AVPacket m_audioPkt;
+
+	Limitless::EventQueueThread<PadSample> m_outputQueue;
 
 	AVCodecID m_codecId;
 	int m_bitrate;

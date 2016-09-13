@@ -23,6 +23,7 @@ class BASE_EXPORT Attributes
 {
 public:
 	void addAttribute(SharedAttribute attribute);
+	template <typename T> void addAttribute(std::string name, T value) { m_attributes[name].reset(new AttributeTemplate<T>(name, value)); }
 
 	typedef SharedAttributeMap::value_type value_type;
 	typedef SharedAttributeMap::iterator iterator;
@@ -35,6 +36,8 @@ public:
 	SharedAttribute find(const std::string &key) const;
 	SharedAttribute &operator[](const char *key){const std::string constKey(key); return m_attributes[constKey];}
 	SharedAttribute &operator[](const std::string &key){return m_attributes[key];}
+	SharedAttribute const &operator[](const char *key) const { const std::string constKey(key); return m_attributes.at(constKey); }
+	SharedAttribute const &operator[](const std::string &key) const { return m_attributes.at(key); }
 
 	SharedAttribute const&at(const std::string key) const{return m_attributes.at(key);}
 

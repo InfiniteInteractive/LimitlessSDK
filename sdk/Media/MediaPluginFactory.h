@@ -35,6 +35,7 @@ class MEDIA_EXPORT FilterDefinition
 {
 public:
 	std::string name;
+	bool enumerable;
 	FilterType type;
 	std::string category;
 };
@@ -42,11 +43,13 @@ typedef std::vector<FilterDefinition> FilterDefinitions;
 
 class MEDIA_EXPORT MediaPluginFactory
 {
+	typedef std::vector<std::string> (*EnumerateFunc)();
 	typedef IMediaFilter *(*FactoryFunc)(std::string, SharedMediaFilter);
 
 	struct FilterDetails:public FilterDefinition
 	{
 		FactoryFunc factoryFunction;
+		EnumerateFunc enumerateFunction;
 	};
 	typedef boost::unordered_map<std::string, FilterDetails> FilterDetailsMap;
 
@@ -60,7 +63,10 @@ public:
 	static std::vector<std::string> getType(std::string type);
 	static bool isType(std::string className, std::string type);
 
-	template<typename CLASS> static CLASS *createType(std::string type, std::string instance, SharedMediaFilter parent=SharedMediaFilter())
+	static bool isEnumerable(std::string className);
+	static std::vector<std::string> enumerate(std::string className);
+
+	template<typename CLASS> static CLASS *createType(std::string type, std::string instance, Attributes attributes=Attributes(), SharedMediaFilter parent=SharedMediaFilter())
 	{
 		FilterDetailsMap::iterator iter=s_objects.find(type);
 
@@ -72,6 +78,9 @@ public:
 			{
 				SharedMediaFilter mediaFilter(object);
 
+				if(!mediaFilter->initialize(attributes))
+					return SharedMediaFilter();
+
 				s_filterInstances.push_back(mediaFilter);
 				return object;
 			}
@@ -79,7 +88,7 @@ public:
 		return NULL;
 	}
 
-	static SharedMediaFilter create(std::string type, std::string instance, SharedMediaFilter parent=SharedMediaFilter())
+	static SharedMediaFilter create(std::string type, std::string instance, Attributes attributes=Attributes(), SharedMediaFilter parent=SharedMediaFilter())
 	{
 		FilterDetailsMap::iterator iter=s_objects.find(type);
 
@@ -91,7 +100,7 @@ public:
 			{
 				SharedMediaFilter mediaFilter(object);
 
-				if(!mediaFilter->initialize(Attributes()))
+				if(!mediaFilter->initialize(attributes))
 					return SharedMediaFilter();
 
 				s_filterInstances.push_back(mediaFilter);
@@ -107,6 +116,8 @@ public:
 		FilterDetails details;
 
 		details.name=TypeName<CLASS>::get();
+		details.enumerable=traits::enumerable<CLASS>::value();
+		details.enumerateFunction=&traits::enumerable<CLASS>::get;
 		details.type=traits::type<CLASS>::get();
 		details.category=traits::category<CLASS>::get();
 		details.factoryFunction=&MediaAutoRegister<CLASS, INTERFACE>::create;

@@ -80,8 +80,9 @@ bool FfmpegOutput::initialize(const Attributes &attributes)
 	
 	m_enabled=false;
 	m_recording=false;
+	m_audioRecording=false;
 
-	addAttribute("enabled", false);
+	addAttribute("enable", false);
 	addAttribute("outputFormat", avFormatName, avFormats);
 	addAttribute("outputLocation", "untitled.mp4");
 //	addAttribute("outputLocation", "test.mp4");
@@ -113,29 +114,56 @@ SharedPluginView FfmpegOutput::getView()
 
 bool FfmpegOutput::processSample(SharedMediaPad sinkPad, SharedMediaSample sample)
 {
+	m_outputQueue.push_back(PadSample(sinkPad, sample));
+	return true;
+}
+
+void FfmpegOutput::processSampleThread(PadSample padSample)
+{
+	SharedMediaPad sinkPad=padSample.first;
+	SharedMediaSample sample=padSample.second;
+
     if(sample->isType(m_eventSampleId))
     {
         SharedEventSample eventSample=boost::dynamic_pointer_cast<EventSample>(sample);
 
         if(eventSample->getEvent()==Limitless::Event::EndOf)
         {
-            if(m_recording)
-            {
-                m_recording=false;
-                av_write_trailer(m_avFormatContext);
-                avio_close(m_avFormatContext->pb);
-                m_firstSample=true;
-				m_firstAudioSample=true;
-                
-                std::string location=attribute("outputLocation")->toString();
-                std::string message="Closed "+location;
-                Log::message("FfmpegOutput", message);
-            }
+			bool stoppedRecording=false;
+
+			if(sinkPad==m_videoSinkPad)
+			{
+				if(m_recording)
+				{
+					m_recording=false;
+					m_firstSample=true;
+					stoppedRecording=true;
+				}
+			}
+			else if(sinkPad==m_audioSinkPad)
+			{
+				if(m_audioRecording)
+				{
+					m_audioRecording=false;
+					m_firstAudioSample=true;
+					stoppedRecording=true;
+				}
+			}
+
+			if(stoppedRecording && !m_recording && !m_audioRecording)
+			{
+				av_write_trailer(m_avFormatContext);
+				avio_close(m_avFormatContext->pb);
+
+				std::string location=attribute("outputLocation")->toString();
+				std::string message="Closed "+location;
+				Log::message("FfmpegOutput", message);
+			}
         }
     }
 
 	if(!sample->isType(m_ffmpegPacketSampleId))
-		return false;
+		return;
 
 	int avError;
 
@@ -150,7 +178,7 @@ bool FfmpegOutput::processSample(SharedMediaPad sinkPad, SharedMediaSample sampl
 
 				//wait for key frame to start
 				if(!(packet->flags&AV_PKT_FLAG_KEY))
-					return true;
+					return;
 
 				std::string location=attribute("outputLocation")->toString();
 
@@ -171,13 +199,14 @@ bool FfmpegOutput::processSample(SharedMediaPad sinkPad, SharedMediaSample sampl
 						Log::error("FfmpegOutput", message);
 
 						m_enabled=false;
-						return false;
+						return;
 					}
 				}
 
 				avError=avformat_write_header(m_avFormatContext, NULL);
 				m_firstSample=false;
 				m_recording=true;
+				m_audioRecording=true;
 				m_startPts=packet->pts;
 
 				writeSample(sample);
@@ -189,8 +218,8 @@ bool FfmpegOutput::processSample(SharedMediaPad sinkPad, SharedMediaSample sampl
 		}
 		else if(sinkPad==m_audioSinkPad)
 		{ 
-			if(!m_recording)
-				return true;
+			if(!m_audioRecording)
+				return;
 
 			if(m_firstAudioSample)
 			{
@@ -225,7 +254,7 @@ bool FfmpegOutput::processSample(SharedMediaPad sinkPad, SharedMediaSample sampl
 //		}
 //	}
 //	deleteSample(sample);
-	return true;
+	return;
 }
 
 void FfmpegOutput::writeSample(Limitless::SharedMediaSample sample)
@@ -237,13 +266,12 @@ void FfmpegOutput::writeSample(Limitless::SharedMediaSample sample)
 
 void FfmpegOutput::writeSample(FfmpegPacketSample *ffmpegPacketSample)
 {
-	int avError;
-
 	AVPacket *packet=ffmpegPacketSample->getPacket();
 	AVPacket localPacket;
 
-	av_init_packet(&localPacket);
-	av_copy_packet(&localPacket, packet);
+//	av_init_packet(&localPacket);
+	int copyError=av_copy_packet(&localPacket, packet);
+	av_copy_packet_side_data(&localPacket, packet);
 
 //	AVRational rational={1, 24};
     AVRational rational={1001, 30000};
@@ -257,6 +285,9 @@ void FfmpegOutput::writeSample(FfmpegPacketSample *ffmpegPacketSample)
 
 	localPacket.stream_index=m_videoStream->index;
 
+	int avError;
+
+	OutputDebugStringA((boost::format("write frame: idx:%d size:%d pts:%d dts:%d\n")%localPacket.stream_index%localPacket.size%localPacket.pts%localPacket.dts).str().c_str());
 	avError=av_interleaved_write_frame(m_avFormatContext, &localPacket);
 
 	
@@ -288,6 +319,8 @@ void FfmpegOutput::writeAudioSample(FfmpegPacketSample *ffmpegPacketSample)
 	av_packet_rescale_ts(&localPacket, rational, m_audioStream->time_base);
 	localPacket.stream_index=m_audioStream->index;
 
+	OutputDebugStringA((boost::format("write audio: idx:%d size:%d pts:%d dts:%d\n")%localPacket.stream_index%localPacket.size%localPacket.pts%localPacket.dts).str().c_str());
+
 	avError=av_interleaved_write_frame(m_avFormatContext, &localPacket);
 }
 
@@ -301,6 +334,9 @@ IMediaFilter::StateChange FfmpegOutput::onReady()
 //	if(m_videoCodecs[m_currentVideoEncoder].name != videoEncoder)
 //		m_currentVideoEncoder=getVideoEncoderIndex(videoEncoder);
 //
+
+	m_outputQueue.start(std::bind(&FfmpegOutput::processSampleThread, this, std::placeholders::_1));
+
 	SharedMediaPads sinkMediaPads=getSinkPads();
 
 	if(sinkMediaPads.size() <= 0)
@@ -415,8 +451,7 @@ void FfmpegOutput::onLinkFormatChanged(SharedMediaPad pad, SharedMediaFormat for
 			{
 				std::string sampleFormat=format->attribute("sampleFormat")->toString();
 
-				if(sampleFormat=="FloatP")
-					m_audioSampleFormat=AV_SAMPLE_FMT_FLTP;
+				m_audioSampleFormat=FfmpegResources::getAudioFormatFromName(sampleFormat);
 			}
 			if(format->exists("frameSize"))
 				m_audioFrameSize=format->attribute("frameSize")->toInt();
@@ -466,7 +501,7 @@ bool FfmpegOutput::onAcceptMediaFormat(SharedMediaPad pad, SharedMediaFormat for
 
 void FfmpegOutput::onAttributeChanged(std::string name, SharedAttribute attribute)
 {
-	if(name == "enabled")
+	if(name == "enable")
 	{
 		m_enabled=attribute->toBool();
 	}
@@ -557,10 +592,11 @@ void FfmpegOutput::setupFormat()
 	streamCodec->height=m_height;
 	streamCodec->gop_size=m_keyframeRate;
 	streamCodec->pix_fmt=m_pixelFormat;
+	
+	if(m_avFormatContext->oformat->flags & AVFMT_GLOBALHEADER)
+		streamCodec->flags!=CODEC_FLAG_GLOBAL_HEADER;
 
-//	if(m_avFormatContext->oformat->flags & AVFMT_GLOBALHEADER)
-//		streamCodec->flags!=CODEC_FLAG_GLOBAL_HEADER;
-
+	m_videoStream->id=m_avFormatContext->nb_streams-1;
 	m_videoStream->time_base=m_timeBase;
 
 	av_init_packet(&m_pkt);
@@ -577,7 +613,7 @@ void FfmpegOutput::setupAudioFormat()
 
 	AVCodecContext *audioStreamCodec=m_avFormatContext->streams[m_audioStream->index]->codec;
 
-	audioStreamCodec->codec=audioCodecContext->codec;
+//	audioStreamCodec->codec=audioCodecContext->codec;
 	audioStreamCodec->codec_id=m_audioCodecId;
 	audioStreamCodec->bit_rate=m_audioBitrate;
 	audioStreamCodec->sample_rate=m_audioSampleRate;
@@ -590,6 +626,7 @@ void FfmpegOutput::setupAudioFormat()
 //		audioStreamCodec->flags!=CODEC_FLAG_GLOBAL_HEADER;
 
 	m_audioStream->time_base=m_audioTimeBase;
+	m_audioStream->id=m_avFormatContext->nb_streams-1;
 
 	av_init_packet(&m_audioPkt);
 

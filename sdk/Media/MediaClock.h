@@ -19,6 +19,12 @@ const MediaTime InvalidMediaTime=std::numeric_limits<MediaTime>::max();
 #pragma warning(push)
 #pragma warning(disable:4251)
 
+struct TimeBase
+{
+	uint64_t num;
+	uint64_t den;
+};
+
 class MEDIA_EXPORT MediaClock
 {
 public:

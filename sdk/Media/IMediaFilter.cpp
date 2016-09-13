@@ -984,7 +984,11 @@ MediaTime IMediaFilter::getTime()
 
 MediaTime IMediaFilter::getStreamTime()
 {
-	return getTime();
+//	return getTime();
+	if(m_parent!=SharedMediaFilter())
+		return m_parent->getStreamTime();
+	else
+		return getTime();
 }
 
 IMediaFilter::FilterState IMediaFilter::getState() const

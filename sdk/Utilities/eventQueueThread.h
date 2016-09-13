@@ -25,7 +25,7 @@ public:
 		m_thread=std::thread(std::bind(&EventQueueThread::thread, this));
 
 		{//wait for thread to start
-			std::unique_lock<std::mutex> lock(m_eventQueue.m_mutex);
+			std::unique_lock<std::mutex> lock(m_eventQueue.m_queuMutex);
 
 			while(!m_threadRunning)
 				m_eventQueue.m_conditionVariable.wait(lock);
@@ -35,7 +35,7 @@ public:
 	void stop()
 	{
 		{
-			std::unique_lock<std::mutex> lock(m_eventQueue.m_mutex);
+			std::unique_lock<std::mutex> lock(m_eventQueue.m_queuMutex);
 
 			m_stopThread=true;
 		}
@@ -45,7 +45,7 @@ public:
 
 	void thread()
 	{
-		std::unique_lock<std::mutex> lock(m_eventQueue.m_mutex);
+		std::unique_lock<std::mutex> lock(m_eventQueue.m_queuMutex);
 
 		m_threadRunning=true;
 		m_eventQueue.m_conditionVariable.notify_all();
@@ -58,9 +58,9 @@ public:
 			if(m_eventQueue.m_queue.empty())
 				continue;
 
-			_Type value=m_queue.front();
+			_Type value=m_eventQueue.m_queue.front();
 
-			m_queue.pop_front();
+			m_eventQueue.m_queue.pop_front();
 			lock.unlock();
 
 			//make call outside of mutex

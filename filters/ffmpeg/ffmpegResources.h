@@ -64,6 +64,11 @@ public:
 	static AVSampleFormat getAudioFormat(Limitless::AudioSampleFormat format);
 	static Limitless::AudioSampleFormat getAudioFormat(AVSampleFormat format);
 
+	static std::string getAudioFormatName(AVSampleFormat format);
+	static AVSampleFormat getAudioFormatFromName(std::string format);
+
+	static uint64_t guessAudioChannelLayout(int channels);
+
 	static unsigned int pushCodecContext(Limitless::IMediaFilter *mediaFilter, AVCodecContext *codecContext);
     static void popCodecContext(unsigned int id);
 

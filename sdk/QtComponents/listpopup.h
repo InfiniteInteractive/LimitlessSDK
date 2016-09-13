@@ -21,6 +21,7 @@ public:
 	~ListPopup();
 
 	void setItems(std::vector<QString> &items);
+	void setSubItems(QString &item, std::vector<QString> &subItems);
 
 protected:
 	virtual void mousePressEvent(QMouseEvent * event);
@@ -28,12 +29,18 @@ protected:
 
 public slots:
 	void on_list_itemClicked(QListWidgetItem *item);
+	void on_subItemClick(QString item);
 
 signals:
 	void itemSelected(QString item);
 
 private:
 	Ui::ListPopup *ui;
+
+	typedef std::map<QString, std::vector<QString>> SubitemMap;
+	
+	QString m_currentItemSelected;
+	SubitemMap m_subItems;
 };
 
 #endif // LISTPOPUP_H

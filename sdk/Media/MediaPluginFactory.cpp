@@ -167,6 +167,26 @@ bool MediaPluginFactory::isType(std::string className, std::string type)
 	return false;
 }
 
+bool MediaPluginFactory::isEnumerable(std::string className)
+{
+	FilterDetailsMap::iterator iter=s_objects.find(className);
+
+	if(iter==s_objects.end())
+		return false;
+
+	return iter->second.enumerable;
+}
+
+std::vector<std::string> MediaPluginFactory::enumerate(std::string className)
+{
+	FilterDetailsMap::iterator iter=s_objects.find(className);
+
+	if(iter==s_objects.end())
+		return std::vector<std::string>();
+
+	return iter->second.enumerateFunction();
+}
+
 void MediaPluginFactory::removeFilter(IMediaFilter *filter)
 {
 	for(SharedMediaFilters::iterator iter=s_filterInstances.begin(); iter!=s_filterInstances.end(); ++iter)

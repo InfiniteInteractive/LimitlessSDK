@@ -250,3 +250,92 @@ Limitless::AudioSampleFormat FfmpegResources::getAudioFormat(AVSampleFormat form
 
 	return Limitless::AudioSampleFormat::Unknown;
 }
+
+std::string FfmpegResources::getAudioFormatName(AVSampleFormat format)
+{
+	std::string sampleFormat="Unknown";
+
+	if(format==AV_SAMPLE_FMT_U8)
+		sampleFormat="UInt8";
+	else if(format==AV_SAMPLE_FMT_S16)
+		sampleFormat="Int16";
+	else if(format==AV_SAMPLE_FMT_S32)
+		sampleFormat="Int32";
+	else if(format==AV_SAMPLE_FMT_FLT)
+		sampleFormat="Float";
+	else if(format==AV_SAMPLE_FMT_DBL)
+		sampleFormat="Double";
+	else if(format==AV_SAMPLE_FMT_U8P)
+		sampleFormat="UInt8P";
+	else if(format==AV_SAMPLE_FMT_S16P)
+		sampleFormat="Int16P";
+	else if(format==AV_SAMPLE_FMT_S32P)
+		sampleFormat="Int32P";
+	else if(format==AV_SAMPLE_FMT_FLTP)
+		sampleFormat="FloatP";
+	else if(format==AV_SAMPLE_FMT_DBLP)
+		sampleFormat="DoubleP";
+
+	return sampleFormat;
+}
+
+AVSampleFormat FfmpegResources::getAudioFormatFromName(std::string format)
+{
+	AVSampleFormat sampleFormat=AV_SAMPLE_FMT_NONE;
+
+	if(format=="UInt8")
+		sampleFormat=AV_SAMPLE_FMT_U8;
+	else if(format=="Int16")
+		sampleFormat=AV_SAMPLE_FMT_S16;
+	else if(format=="Int32")
+		sampleFormat=AV_SAMPLE_FMT_S32;
+	else if(format=="Float")
+		sampleFormat=AV_SAMPLE_FMT_FLT;
+	else if(format=="Double")
+		sampleFormat=AV_SAMPLE_FMT_DBL;
+	else if(format=="UInt8P")
+		sampleFormat=AV_SAMPLE_FMT_U8P;
+	else if(format=="Int16P")
+		sampleFormat=AV_SAMPLE_FMT_S16P;
+	else if(format=="Int32P")
+		sampleFormat=AV_SAMPLE_FMT_S32P;
+	else if(format=="FloatP")
+		sampleFormat=AV_SAMPLE_FMT_FLTP;
+	else if(format=="DoubleP")
+		sampleFormat=AV_SAMPLE_FMT_DBLP;
+
+	return sampleFormat;
+}
+
+uint64_t FfmpegResources::guessAudioChannelLayout(int channels)
+{
+	uint64_t channelLayout;
+
+	switch(channels)
+	{
+	case 1:
+		channelLayout=AV_CH_LAYOUT_MONO;
+		break;
+	default:
+	case 2:
+		channelLayout=AV_CH_LAYOUT_STEREO;
+		break;
+	case 3:
+		channelLayout=AV_CH_LAYOUT_SURROUND;
+		break;
+	case 4:
+		channelLayout=AV_CH_LAYOUT_4POINT0;
+		break;
+	case 5:
+		channelLayout=AV_CH_LAYOUT_5POINT0;
+		break;
+	case 6:
+		channelLayout=AV_CH_LAYOUT_6POINT0;
+		break;
+	case 7:
+		channelLayout=AV_CH_LAYOUT_7POINT0;
+		break;
+	}
+
+	return channelLayout;
+}

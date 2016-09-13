@@ -249,97 +249,131 @@ void AudioMixer::processSourceSample()
 
 void AudioMixer::mixSamples()
 {
-	std::unique_lock<std::mutex> lock(m_processingMutex);
-
-	//@TODO: need to sync samples, taking shortcut for the moment
-	std::vector<size_t> activePads;
-	std::vector<SharedIAudioSample> inputSamples(m_padSamples.size());
-
-	for(size_t i=0; i<m_padSamples.size(); ++i)
-	{
-		if(m_padSamples[i].empty())
-			continue;
-
-		activePads.push_back(i);
-		inputSamples[i]=m_padSamples[i].front();
-		m_padSamples[i].pop_front();
-	}
-
-	if(activePads.size()<m_linkedPads)
+	if(m_padSamples.size()<1)
 		return;
 
-	std::vector<medialib::SimpleAudioBuffer> channelAudioBuffers(m_linkedPads);
-	std::vector<medialib::SimpleAudioBuffer> mixAudioBuffers(m_mixInfo.size());
+	SharedIAudioSample sample=m_padSamples[0].front();
 	
-//	std::vector<medialib::AudioBufferWrapper> audioBuffers;
-	for(size_t i=0; i<m_mixInfo.size(); ++i)
-	{
-		OutputInfo &outputInfo=m_mixInfo[i];
-		auto &ioMixes=outputInfo.inputs;
-		std::vector<medialib::AudioBuffer> audioBuffers;
-		Limitless::SharedIAudioSample firstSample;
+	m_padSamples[0].pop_front();
 
-		for(size_t j=0; j<inputSamples.size(); ++j)
-		{
-			if(!inputSamples[j])
-				continue;
-			
-			auto &ioMix=ioMixes[j];
-			auto &channelMixes=ioMix.channelMixes;
+	medialib::AudioBufferWrapper wrapper(convertFormat(sample->format()), sample->channels(), sample->samples(), sample->sampleRate(),
+						sample->buffer(), sample->size());
 
-			Limitless::SharedIAudioSample &sample=inputSamples[j];
+	Limitless::SharedAudioSample outSample=newSampleType<Limitless::AudioSample>(m_audioSampleId);
+	
+	outSample->resize(sample->format(), 2, sample->samples(), sample->sampleRate());
 
-			if(!firstSample)
-				firstSample=sample;
+	medialib::AudioBufferWrapper outWrapper(convertFormat(outSample->format()), outSample->channels(), outSample->samples(), outSample->sampleRate(),
+		outSample->buffer(), outSample->size());
 
-			medialib::AudioBufferWrapper wrapper(convertFormat(sample->format()), sample->channels(), sample->samples(), sample->sampleRate(),
-				sample->buffer(), sample->size());
+	std::vector<float> channelLevels(sample->channels());
 
-			std::vector<float> channelLevels(sample->channels());
-			
-			if(channelMixes.size()<sample->channels())
-				channelMixes.resize(sample->channels());
+	for(size_t i=0; i<sample->channels(); i++)
+		channelLevels[i]=0.0;
 
-			for(size_t k=0; k<sample->channels(); ++k)
-				channelLevels[k]=channelMixes[k].level;
+	channelLevels[0]=1.0;
+	channelLevels[1]=1.0;
 
-			channelAudioBuffers[j].alloc(convertFormat(sample->format()), 1, sample->samples(), sample->sampleRate());
-			medialib::mixAudioBufferChannels(wrapper, channelLevels, channelAudioBuffers[j]);
+	medialib::copyAudioBufferChannel(wrapper, 0, outWrapper, 0);
+	medialib::copyAudioBufferChannel(wrapper, 1, outWrapper, 1);
 
-			audioBuffers.push_back(channelAudioBuffers[j]);
-		}		
-
-		if(!firstSample)
-			continue;
-
-		//mix multiple audio buffers to channel
-		mixAudioBuffers[i].alloc(convertFormat(firstSample->format()), 1, firstSample->samples(), firstSample->sampleRate());
-		medialib::mixAudioBuffer(audioBuffers, mixAudioBuffers[i]);
-	}
-
-	if(mixAudioBuffers.empty())
-		return;
-
-	medialib::SimpleAudioBuffer &firstAudioBuffer=mixAudioBuffers[0];
-	std::vector<medialib::AudioBuffer> audioBuffers(mixAudioBuffers.begin(), mixAudioBuffers.end());
-
-	Limitless::SharedAudioSample mixSample=newSampleType<Limitless::AudioSample>(m_audioSampleId);
-
-	mixSample->resize(convertFormat(firstAudioBuffer.format), mixAudioBuffers.size(), firstAudioBuffer.samples, firstAudioBuffer.sampleRate);
-
-	medialib::AudioBufferWrapper wrapper(convertFormat(mixSample->format()), mixSample->channels(), mixSample->samples(), mixSample->sampleRate(),
-		mixSample->buffer(), mixSample->size());
-
-	medialib::combineAudioBufferChannels(audioBuffers, wrapper);
-
-	if(m_audioMixerView!=nullptr)
-	{
-		m_audioMixerView->processSamples(inputSamples, mixSample);
-	}
-
-	mixSample->copyHeader(inputSamples[0]);
-	pushSample(m_mixInfo[0].pad, mixSample);
+	outSample->copyHeader(sample);
+	pushSample(m_mixInfo[0].pad, outSample);
 }
+
+//void AudioMixer::mixSamples()
+//{
+//	std::unique_lock<std::mutex> lock(m_processingMutex);
+//
+//	//@TODO: need to sync samples, taking shortcut for the moment
+//	std::vector<size_t> activePads;
+//	std::vector<SharedIAudioSample> inputSamples(m_padSamples.size());
+//
+//	for(size_t i=0; i<m_padSamples.size(); ++i)
+//	{
+//		if(m_padSamples[i].empty())
+//			continue;
+//
+//		activePads.push_back(i);
+//		inputSamples[i]=m_padSamples[i].front();
+//		m_padSamples[i].pop_front();
+//	}
+//
+//	if(activePads.size()<m_linkedPads)
+//		return;
+//
+//	std::vector<medialib::SimpleAudioBuffer> channelAudioBuffers(m_linkedPads);
+//	std::vector<medialib::SimpleAudioBuffer> mixAudioBuffers(m_mixInfo.size());
+//	
+////	std::vector<medialib::AudioBufferWrapper> audioBuffers;
+//	for(size_t i=0; i<m_mixInfo.size(); ++i)
+//	{
+//		OutputInfo &outputInfo=m_mixInfo[i];
+//		auto &ioMixes=outputInfo.inputs;
+//		std::vector<medialib::AudioBuffer> audioBuffers;
+//		Limitless::SharedIAudioSample firstSample;
+//
+//		for(size_t j=0; j<inputSamples.size(); ++j)
+//		{
+//			if(!inputSamples[j])
+//				continue;
+//			
+//			auto &ioMix=ioMixes[j];
+//			auto &channelMixes=ioMix.channelMixes;
+//
+//			Limitless::SharedIAudioSample &sample=inputSamples[j];
+//
+//			if(!firstSample)
+//				firstSample=sample;
+//
+//			medialib::AudioBufferWrapper wrapper(convertFormat(sample->format()), sample->channels(), sample->samples(), sample->sampleRate(),
+//				sample->buffer(), sample->size());
+//
+//			std::vector<float> channelLevels(sample->channels());
+//			
+//			if(channelMixes.size()<sample->channels())
+//				channelMixes.resize(sample->channels());
+//
+//			for(size_t k=0; k<sample->channels(); ++k)
+//				channelLevels[k]=channelMixes[k].level;
+//
+//			channelAudioBuffers[j].alloc(convertFormat(sample->format()), 1, sample->samples(), sample->sampleRate());
+//			medialib::mixAudioBufferChannels(wrapper, channelLevels, channelAudioBuffers[j]);
+//
+//			audioBuffers.push_back(channelAudioBuffers[j]);
+//		}		
+//
+//		if(!firstSample)
+//			continue;
+//
+//		//mix multiple audio buffers to channel
+//		mixAudioBuffers[i].alloc(convertFormat(firstSample->format()), 1, firstSample->samples(), firstSample->sampleRate());
+//		medialib::mixAudioBuffer(audioBuffers, mixAudioBuffers[i]);
+//	}
+//
+//	if(mixAudioBuffers.empty())
+//		return;
+//
+//	medialib::SimpleAudioBuffer &firstAudioBuffer=mixAudioBuffers[0];
+//	std::vector<medialib::AudioBuffer> audioBuffers(mixAudioBuffers.begin(), mixAudioBuffers.end());
+//
+//	Limitless::SharedAudioSample mixSample=newSampleType<Limitless::AudioSample>(m_audioSampleId);
+//
+//	mixSample->resize(convertFormat(firstAudioBuffer.format), mixAudioBuffers.size(), firstAudioBuffer.samples, firstAudioBuffer.sampleRate);
+//
+//	medialib::AudioBufferWrapper wrapper(convertFormat(mixSample->format()), mixSample->channels(), mixSample->samples(), mixSample->sampleRate(),
+//		mixSample->buffer(), mixSample->size());
+//
+//	medialib::combineAudioBufferChannels(audioBuffers, wrapper);
+//
+//	if(m_audioMixerView!=nullptr)
+//	{
+//		m_audioMixerView->processSamples(inputSamples, mixSample);
+//	}
+//
+//	mixSample->copyHeader(inputSamples[0]);
+//	pushSample(m_mixInfo[0].pad, mixSample);
+//}
 
 IMediaFilter::StateChange AudioMixer::onReady()
 {
@@ -390,6 +424,11 @@ void AudioMixer::onLinkFormatChanged(SharedMediaPad pad, SharedMediaFormat forma
 
 		MediaFormat sourceFormat(*format);
 		SharedMediaPads sourcePads=getSourcePads();
+
+		if(sourceFormat.exists("channels"))
+			sourceFormat.attribute("channels")->fromInt(2);
+		else
+			sourceFormat.addAttribute("channels", 2);
 
 		BOOST_FOREACH(SharedMediaPad &sourcePad, sourcePads)
 		{

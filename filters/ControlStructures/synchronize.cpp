@@ -4,6 +4,8 @@
 #include "Media/IImageSampleSet.h"
 #include "Media/EventSample.h"
 
+#include "Utilities/utilitiesMath.h"
+
 #include <boost/foreach.hpp>
 #include <boost/format.hpp>
 
@@ -20,7 +22,8 @@ m_sinkCount(0),
 m_firstSample(true),
 m_captureIndex(0),
 m_lastSyncTime(0),
-m_captureImages(false)
+m_captureImages(false),
+m_timeError(10000)
 {
 	m_bufferLength=10;
 	addAttribute("bufferLength", 10);
@@ -187,6 +190,15 @@ void Synchronize::onLinkFormatChanged(SharedMediaPad pad, SharedMediaFormat form
 	{
 		m_outputFormat.reset(new Limitless::MediaFormat(*format));
 		Limitless::SharedMediaPads sourcePads=getSourcePads();
+
+		if(format->exists("timeBaseNum") &&format->exists("timeBaseDen"))
+		{
+			TimeBase timeBase;
+
+			timeBase.num=format->attribute("timeBaseNum")->toInt64();
+			timeBase.den=format->attribute("timeBaseDen")->toInt64();
+			m_timeError=(utilities_uint64_scale(1000000, timeBase.num, timeBase.den)*2)/3;
+		}
 
 		for(SharedMediaPad &sourcePad:sourcePads)
 		{
@@ -380,7 +392,7 @@ bool Synchronize::syncSamples()
 
             if(m_syncSource==Stream)
             {
-                if(mediaSample->timestamp()<=lowestTime+10000) //10ms fudge TODO:fix
+                if(mediaSample->timestamp()<=lowestTime+m_timeError) //10ms fudge TODO:fix
                 {
                     sink.samples.pop_front();
 
@@ -389,13 +401,13 @@ bool Synchronize::syncSamples()
                     m_currentSampleSet->sample(i)=imageSample;
                     syncedImages++;
 
-//									message="Image "+std::to_string(i)+" success time:"+std::to_string(mediaSample->timestamp())+" source time:"+std::to_string(mediaSample->sourceTimestamp())+" seq:"+std::to_string(mediaSample->sequenceNumber())+"\n";
-//									OutputDebugStringA((LPCSTR)message.c_str());
+					message="Image "+std::to_string(i)+" success time:"+std::to_string(mediaSample->timestamp())+" source time:"+std::to_string(mediaSample->sourceTimestamp())+" seq:"+std::to_string(mediaSample->sequenceNumber())+"\n";
+					OutputDebugStringA((LPCSTR)message.c_str());
                 }
                 else
                 {
-//									message="Image "+std::to_string(i)+" failed time:"+std::to_string(mediaSample->timestamp())+" delta:"+std::to_string(mediaSample->timestamp()-lowestTime)+" source time:"+std::to_string(mediaSample->sourceTimestamp())+" seq:"+std::to_string(mediaSample->sequenceNumber())+"\n";
-//									OutputDebugStringA((LPCSTR)message.c_str());
+					message="Image "+std::to_string(i)+" failed time:"+std::to_string(mediaSample->timestamp())+" delta:"+std::to_string(mediaSample->timestamp()-lowestTime)+" source time:"+std::to_string(mediaSample->sourceTimestamp())+" seq:"+std::to_string(mediaSample->sequenceNumber())+"\n";
+					OutputDebugStringA((LPCSTR)message.c_str());
                     failedImages++;
                 }
             }

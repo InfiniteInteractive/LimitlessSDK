@@ -111,15 +111,26 @@ private:
 
 	bool m_isVideoEncoder;
 	int m_currentVideoEncoder;
+	bool m_hasAudio;
 
 	AVCodecContext *m_videoEncoder;
 	CodecOptions m_videoOptions;
 	int m_currentAudioEncoder;
 	AVCodecContext *m_audioEncoder;
     CodecOptions m_audioOptions;
+	bool m_firstSample;
+	__int64 m_startTime;
 
     unsigned int m_width;
     unsigned int m_height;
+
+	int m_audioChannels;
+	int m_audioSampleRate;
+	AVSampleFormat m_audioSampleFormat;
+
+	int m_audioOutputChannels;
+	int m_audioOutputSampleRate;
+	AVSampleFormat m_audioOutputSampleFormat;
 
 	SharedFfmpegPacketSample m_currentBufferSample;
 	AVFrame *m_frame;

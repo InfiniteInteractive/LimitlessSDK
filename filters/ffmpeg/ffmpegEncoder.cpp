@@ -67,7 +67,9 @@ m_frameIndex(0),
 //m_audioFormatBuffer(NULL),
 m_audioFormatBufferSize(0),
 m_wasEnabled(false),
-m_isVideoEncoder(true)
+m_isVideoEncoder(true),
+m_firstSample(true),
+m_hasAudio(false)
 {
 	m_audioFormatBuffer[0]=NULL;
 	m_audioFormatBuffer[1]=NULL;
@@ -94,6 +96,7 @@ m_isVideoEncoder(true)
 	m_codecNameMap.insert(CodecNameMap::value_type("libvorbis", "Vorbis"));
 
 	av_log_set_level(AV_LOG_VERBOSE);
+//	av_log_set_level(AV_LOG_DEBUG);
 }
 
 FfmpegEncoder::~FfmpegEncoder()
@@ -158,6 +161,27 @@ bool FfmpegEncoder::initialize(const Attributes &attributes)
 	addAttribute("profile", profiles[0], profiles);
     addAttribute("gop", 30);
 
+	m_audioOutputChannels=2;
+	addAttribute("audioChannels", m_audioOutputChannels);
+	m_audioOutputSampleRate=48000;
+	addAttribute("audioSampleRate", m_audioOutputSampleRate);
+
+	Strings sampleFormats;
+
+	sampleFormats.push_back("Int8");
+	sampleFormats.push_back("Int16");
+	sampleFormats.push_back("Int32");
+	sampleFormats.push_back("Float");
+	sampleFormats.push_back("Double");
+	sampleFormats.push_back("Int8P");
+	sampleFormats.push_back("Int16P");
+	sampleFormats.push_back("Int32P");
+	sampleFormats.push_back("FloatP");
+	sampleFormats.push_back("DoubleP");
+
+	m_audioOutputSampleFormat=AV_SAMPLE_FMT_S16P;
+	addAttribute("audioSampleFormat", sampleFormats[6], sampleFormats);
+
 //	queryFormats();
 //
 //	Strings avFormats;
@@ -198,7 +222,7 @@ bool FfmpegEncoder::processSample(SharedMediaPad sinkPad, SharedMediaSample samp
 {
 	if(!m_enabled)
 	{
-		if((m_wasEnabled) && m_isVideoEncoder)
+		if((m_wasEnabled))// && m_isVideoEncoder)
 		{
 			emptyEncoders();
 
@@ -269,10 +293,16 @@ bool FfmpegEncoder::processSample(SharedMediaPad sinkPad, SharedMediaSample samp
 //		AVRational rational={1, 48000};//time stamp comming from audio clock at 48khz
 //        m_frame->pts=av_rescale_q(imageSample->sourceTimestamp(), rational, m_videoEncoder->time_base);
 
-        AVRational rational={1, 1000000};//media pipeline in useconds
-		m_frame->pts=av_rescale_q(imageSample->timestamp(), rational, m_videoEncoder->time_base);
+		if(m_firstSample)
+		{
+			m_startTime=imageSample->timestamp();
+			m_firstSample=false;
+		}
 
-		OutputDebugStringA((boost::format("encode frame: seq:%d, pts time:%d\n")%imageSample->sequenceNumber()%m_frame->pts).str().c_str());
+        AVRational rational={1, 1000000};//media pipeline in useconds
+		m_frame->pts=av_rescale_q(imageSample->timestamp()-m_startTime, rational, m_videoEncoder->time_base);
+
+//		OutputDebugStringA((boost::format("encode frame: seq:%d, pts time:%d\n")%imageSample->sequenceNumber()%m_frame->pts).str().c_str());
 
 //		AVRational rational={1, 48000};//comming from audio clock at 48khz
 //		m_frame->pts=av_rescale_q(imageSample->sourceTimestamp(), rational,m_videoEncoder->time_base);
@@ -318,6 +348,9 @@ bool FfmpegEncoder::processSample(SharedMediaPad sinkPad, SharedMediaSample samp
 		if(!audioSample)
 			return false;
 
+		if(m_audioEncoder==NULL)
+			openEncoder();
+
 		if(m_frame==NULL)
 		{
 			m_frame=av_frame_alloc();
@@ -347,6 +380,12 @@ bool FfmpegEncoder::processSample(SharedMediaPad sinkPad, SharedMediaSample samp
 //		uint8_t *dstData[1];
 		int samplesUsed=0;
 
+		if(m_firstSample)
+		{
+			m_startTime=audioSample->timestamp();
+			m_firstSample=false;
+		}
+
 		while(samplesUsed<audioSample->samples())
 		{
 //			if(audioSample->samples()>m_audioFormatBufferSize)
@@ -367,8 +406,15 @@ bool FfmpegEncoder::processSample(SharedMediaPad sinkPad, SharedMediaSample samp
 //			int samples=swr_convert(m_swrAudioContext, m_audioFormatBuffer, m_audioFormatBufferSize, &audioSampleBuffer, audioSample->samples());
 			int samples=swr_convert(m_swrAudioContext, bufferPos, m_audioFormatBufferSize, &audioSampleBuffer, samplesToConvert);
 
-			if(m_samplesInAudioFormatBuffer == 0)
-				m_frame->pts=audioSample->sourceTimestamp()+samplesUsed;
+			if(m_samplesInAudioFormatBuffer==0)
+			{
+				m_frame->pts=audioSample->timestamp()-m_startTime;
+
+				AVRational rational={1, 1000000};//media pipeline in useconds
+				m_frame->pts=av_rescale_q(m_frame->pts, rational, m_audioEncoder->time_base);
+
+				m_frame->pts+=samplesUsed;
+			}
 
 			samplesUsed+=samples;
 			m_samplesInAudioFormatBuffer+=samples;
@@ -393,6 +439,8 @@ bool FfmpegEncoder::processSample(SharedMediaPad sinkPad, SharedMediaSample samp
 				m_currentBufferSample->resetPacket();
 				avError=avcodec_encode_audio2(m_audioEncoder, m_currentBufferSample->getPacket(), m_frame, &output);
 
+//				OutputDebugStringA((boost::format("encode audio: seq:%d, pts time:%d\n")%audioSample->sequenceNumber()%m_frame->pts).str().c_str());
+
 				if(output==1)
 				{
 					m_currentBufferSample->copyHeader(sample, instance());
@@ -416,54 +464,55 @@ void FfmpegEncoder::emptyEncoders()
 	int output=1;
 	int avError;
 
-	while(output)
+	if(m_isVideoEncoder) //clear out video packets
 	{
-		if(!m_currentBufferSample)
+		while(output)
 		{
-			SharedMediaSample sourceSample=newSample(m_ffmpegPacketSampleId);
-			//			SharedFfmpegPacketSample bufferSample=boost::dynamic_pointer_cast<FfmpegPacketSample>(sourceSample);
-			m_currentBufferSample=boost::dynamic_pointer_cast<FfmpegPacketSample>(sourceSample);
-		}
+			if(!m_currentBufferSample)
+			{
+				SharedMediaSample sourceSample=newSample(m_ffmpegPacketSampleId);
+				m_currentBufferSample=boost::dynamic_pointer_cast<FfmpegPacketSample>(sourceSample);
+			}
 
-		m_currentBufferSample->allocate(m_avFrameSize);
-		m_currentBufferSample->resetPacket();
+			m_currentBufferSample->allocate(m_avFrameSize);
+			m_currentBufferSample->resetPacket();
 
-		//		m_currentBufferSample->initPacket();
-		AVPacket *packet=m_currentBufferSample->getPacket();
+			AVPacket *packet=m_currentBufferSample->getPacket();
 
-		avError=avcodec_encode_video2(m_videoEncoder, packet, NULL, &output);
+			avError=avcodec_encode_video2(m_videoEncoder, packet, NULL, &output);
 
-		if(output)
-		{
-			pushSample(m_currentBufferSample);
-			m_currentBufferSample.reset();
+			if(output)
+			{
+				pushSample(m_currentBufferSample);
+				m_currentBufferSample.reset();
+			}
 		}
 	}
-
-//	output=1;
-//	while(output)
-//	{
-//		if(!m_currentBufferSample)
-//		{
-//			SharedMediaSample sourceSample=newSample(m_ffmpegPacketSampleId);
-//			//			SharedFfmpegPacketSample bufferSample=boost::dynamic_pointer_cast<FfmpegPacketSample>(sourceSample);
-//			m_currentBufferSample=boost::dynamic_pointer_cast<FfmpegPacketSample>(sourceSample);
-//		}
-//
-//		m_currentBufferSample->allocate(m_avFrameSize);
-//		m_currentBufferSample->resetPacket();
-//
-//		//		m_currentBufferSample->initPacket();
-//		AVPacket *packet=m_currentBufferSample->getPacket();
-//
-//		avError=avcodec_encode_video2(m_videoEncoder, packet, NULL, &output);
-//
-//		if(output)
-//		{
-//			pushSample(m_currentBufferSample);
-//			m_currentBufferSample.reset();
-//		}
-//	}
+	else //clear out audio packets
+	{
+		while(output)
+		{
+			if(!m_currentBufferSample)
+			{
+				SharedMediaSample sourceSample=newSample(m_ffmpegPacketSampleId);
+				m_currentBufferSample=boost::dynamic_pointer_cast<FfmpegPacketSample>(sourceSample);
+			}
+		
+			int bufferSize=av_samples_get_buffer_size(NULL, m_audioEncoder->channels, m_audioEncoder->frame_size, m_audioEncoder->sample_fmt, 0);
+			m_currentBufferSample->allocate(bufferSize);
+//			m_currentBufferSample->allocate(m_avFrameSize);
+			m_currentBufferSample->resetPacket();
+		
+			AVPacket *packet=m_currentBufferSample->getPacket();
+		
+			avError=avcodec_encode_audio2(m_audioEncoder, packet, NULL, &output);
+			if(output)
+			{
+				pushSample(m_currentBufferSample);
+				m_currentBufferSample.reset();
+			}
+		}
+	}
 }
 
 IMediaFilter::StateChange FfmpegEncoder::onReady()
@@ -599,15 +648,21 @@ void FfmpegEncoder::initAudioSwsContext()
 
 	if((m_currentAudioEncoder>=0)&&(m_currentAudioEncoder < m_audioCodecs.size()))
 	{
-			av_init_packet(&m_pkt);
+		av_init_packet(&m_pkt);
 
 		m_swrAudioContext=swr_alloc_set_opts(NULL,  // we're allocating a new context
-			AV_CH_LAYOUT_STEREO,  // out_ch_layout
-			AV_SAMPLE_FMT_FLTP,    // out_sample_fmt
-			48000,                // out_sample_rate
-			AV_CH_LAYOUT_STEREO, // in_ch_layout
-			AV_SAMPLE_FMT_S32,   // in_sample_fmt
-			48000,                // in_sample_rate
+//			AV_CH_LAYOUT_STEREO,  // out_ch_layout
+//			AV_SAMPLE_FMT_FLTP,    // out_sample_fmt
+//			48000,                // out_sample_rate
+			m_audioEncoder->channel_layout,
+			m_audioEncoder->sample_fmt,
+			m_audioEncoder->sample_rate,
+//			AV_CH_LAYOUT_STEREO, // in_ch_layout
+//			AV_SAMPLE_FMT_S32,   // in_sample_fmt
+//			48000,                // in_sample_rate
+			FfmpegResources::guessAudioChannelLayout(m_audioChannels),
+			m_audioSampleFormat,
+			m_audioSampleRate,
 			0,                    // log_offset
 			NULL);                // log_ctx
 
@@ -718,6 +773,26 @@ void FfmpegEncoder::onLinkFormatChanged(SharedMediaPad pad, SharedMediaFormat fo
 		else if(format->attribute("mime")->toString()=="audio/raw")
 		{
 			m_isVideoEncoder=false;
+
+			if(format->exists("sampleRate"))
+				m_audioSampleRate=format->attribute("sampleRate")->toInt();
+
+			if(format->exists("sampleFormat"))
+			{
+				std::string sampleFormat=format->attribute("sampleFormat")->toString();
+
+				m_audioSampleFormat=FfmpegResources::getAudioFormatFromName(sampleFormat);
+			}
+
+			if(format->exists("channels"))
+			{
+				m_audioChannels=format->attribute("channels")->toInt();
+				m_hasAudio=true;
+			}
+			else
+				m_hasAudio=false;
+
+
             updateAudioEncoderAttributes();
 //			FfmpegCodecs codecs=FfmpegResources::instance().codecs();
 //			FfmpegCodecs::iterator iter=std::find(codecs.begin(), codecs.end(), m_audioCodecs[m_currentAudioEncoder].id);
@@ -792,6 +867,9 @@ void FfmpegEncoder::updateLink()
     }
     else
     {
+		if(!m_hasAudio) //have not recieved audio encoding info
+			return;
+
         FfmpegCodecs codecs=FfmpegResources::instance().codecs();
         FfmpegCodecs::iterator iter=std::find(codecs.begin(), codecs.end(), m_audioCodecs[m_currentAudioEncoder].id);
 
@@ -807,10 +885,7 @@ void FfmpegEncoder::updateLink()
             sourceFormat.addAttribute("timeBaseDen", m_audioEncoder->time_base.den);
             sourceFormat.addAttribute("channels", m_audioEncoder->channels);
 
-            std::string sampleFormat;
-
-            if(m_audioEncoder->sample_fmt==AV_SAMPLE_FMT_FLTP)
-                sampleFormat="FloatP";
+            std::string sampleFormat=FfmpegResources::getAudioFormatName(m_audioEncoder->sample_fmt);
 
             sourceFormat.addAttribute("sampleFormat", sampleFormat);
             sourceFormat.addAttribute("frameSize", m_audioEncoder->frame_size);
@@ -848,6 +923,20 @@ void FfmpegEncoder::onAttributeChanged(std::string name, SharedAttribute attribu
 		if(m_videoCodecs[m_currentAudioEncoder].name!=encoder)
 			m_currentAudioEncoder=getAudioEncoderIndexUi(encoder);
 		updateAudioEncoderAttributes();
+	}
+	else if(name=="audioChannels")
+	{
+		m_audioOutputChannels=attribute->toInt();
+	}
+	else if(name=="audioSampleRate")
+	{
+		m_audioOutputSampleRate=attribute->toInt();
+	}
+	else if(name=="audioSampleFormat")
+	{
+		std::string sampleFormat=attribute->toString();
+
+		m_audioOutputSampleFormat=FfmpegResources::getAudioFormatFromName(sampleFormat);
 	}
 }
 
@@ -994,10 +1083,37 @@ void FfmpegEncoder::openEncoder()
 
             //default settings
             m_audioEncoder->bit_rate=attribute("bitrate")->toInt();
-            m_audioEncoder->sample_fmt=AV_SAMPLE_FMT_FLTP;
-            m_audioEncoder->sample_rate=48000;
-            m_audioEncoder->channel_layout=AV_CH_LAYOUT_STEREO;
-            m_audioEncoder->channels=2;
+
+			m_audioEncoder->sample_fmt=m_audioOutputSampleFormat;// AV_SAMPLE_FMT_FLTP;
+			if(avCodec->sample_fmts)
+			{
+				m_audioEncoder->sample_fmt=avCodec->sample_fmts[0]; //set default as first item
+				for(size_t i=0; avCodec->sample_fmts[i]; i++)
+				{
+					if(avCodec->sample_fmts[i] ==m_audioOutputSampleFormat)
+					{
+						m_audioEncoder->sample_fmt=m_audioOutputSampleFormat;
+						break;
+					}
+				}
+			}
+
+			m_audioEncoder->sample_rate=m_audioOutputSampleRate;// 48000;
+			if(avCodec->supported_samplerates)
+			{
+				m_audioEncoder->sample_rate=avCodec->supported_samplerates[0]; //set default as first item
+				for(size_t i=0; avCodec->supported_samplerates[i]; i++)
+				{
+					if(avCodec->supported_samplerates[i]==m_audioOutputSampleRate)
+					{
+						m_audioEncoder->sample_rate=m_audioOutputSampleRate;
+						break;
+					}
+				}
+			}
+
+            m_audioEncoder->channel_layout=FfmpegResources::guessAudioChannelLayout(m_audioChannels);//AV_CH_LAYOUT_STEREO;
+			m_audioEncoder->channels=m_audioChannels;// 2;
 
             if((avError=avcodec_open2(m_audioEncoder, avCodec, NULL))<0)//&avDictionary)) < 0)
             {
@@ -1007,10 +1123,13 @@ void FfmpegEncoder::openEncoder()
             }
 
             m_audioEncoderId=FfmpegResources::pushCodecContext(this, m_audioEncoder);
+			m_samplesInAudioFormatBuffer=0;
 
             updateLink();
         }
     }
+
+	m_firstSample=true;
 }
 
 void FfmpegEncoder::closeEncoder()
