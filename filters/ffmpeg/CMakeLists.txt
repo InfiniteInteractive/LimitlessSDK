@@ -8,6 +8,9 @@ project(ffmpeg)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+hunter_add_package(Boost COMPONENTS system filesystem thread)
+find_package(Boost CONFIG REQUIRED system filesystem thread)
+
 find_package(ffmpeg REQUIRED)
 
 if(FFMPEG_FOUND)
@@ -67,16 +70,14 @@ set(ffmpeg_Headers
 )
 
 set(ffmpeg_Libraries
-	${Boost_LIBRARIES}
 	Utilities.lib
 	Base.lib
 	Media.lib
-#	avcodec.lib
-#	avformat.lib
-#	avutil.lib
-#	swscale.lib
 	${FFMPEG_LIBRARIES}
 	medialib.lib
+    Boost::system
+    Boost::filesystem
+    Boost::thread
 )
 
 QT5_WRAP_UI(ffmpeg_Uis

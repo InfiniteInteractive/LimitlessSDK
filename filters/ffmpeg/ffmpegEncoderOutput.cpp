@@ -6,6 +6,7 @@
 #include "Media/ImageSample.h"
 #include "Media/BufferSample.h"
 #include "Media/EventSample.h"
+#include "Base/Log.h"
 
 #include "ffmpegResources.h"
 #include "ffmpegControls.h"
@@ -38,6 +39,11 @@ MediaAutoRegister(name, parent)
 	m_codecNameMap.insert(CodecNameMap::value_type("mpeg4", "Mpeg4"));
 	m_codecNameMap.insert(CodecNameMap::value_type("libtheora", "Theora"));
 	m_codecNameMap.insert(CodecNameMap::value_type("libx264", "h264"));
+
+	m_videoProfiles.push_back("Baseline");
+	m_videoProfiles.push_back("Main");
+	m_videoProfiles.push_back("High");
+
 //audio
 	m_codecNameMap.insert(CodecNameMap::value_type("aac", "AAC"));
 	m_codecNameMap.insert(CodecNameMap::value_type("ac3", "AC3"));
@@ -84,6 +90,17 @@ bool FfmpegEncoderOutput::initialize(const Attributes &attributes)
 		videoEncoders.push_back(m_videoCodecs[i].uiName);
 	}
 	addAttribute("videoEncoder", codecDescription.uiName, videoEncoders);
+	addAttribute("width", 1920);
+	addAttribute("height", 1080);
+
+	m_videoOutputBitrate=1024*1024;
+	addAttribute("videoBitrate", m_videoOutputBitrate);
+
+	m_videoOutputProfile=0;
+	addAttribute("videoProfile", m_videoProfiles[m_videoOutputProfile], m_videoProfiles);
+	
+	m_videoOutputKeyFrameInterval=30;
+	addAttribute("videoFrameRateInterval", m_videoOutputKeyFrameInterval);
 
 ////audio////////////////////////
 	m_audioOutputEncoder=0;
@@ -96,21 +113,10 @@ bool FfmpegEncoderOutput::initialize(const Attributes &attributes)
 	}
 	addAttribute("audioEncoder", audioCodecDescription.uiName, audioEncoders);
 
-	addAttribute("width", 1920);
-	addAttribute("height", 1080);
-	addAttribute("bitrate", 1024*1024);
-
-	Strings profiles;
-
-	profiles.push_back("Baseline");
-	profiles.push_back("Main");
-	profiles.push_back("High");
-
-	addAttribute("profile", profiles[0], profiles);
-	addAttribute("gop", 30);
-
 	m_audioOutputChannels=2;
 	addAttribute("audioChannels", m_audioOutputChannels);
+	m_audioOutputBitrate=1280000;
+	addAttribute("audioBitRate", m_audioOutputBitrate);
 	m_audioOutputSampleRate=48000;
 	addAttribute("audioSampleRate", m_audioOutputSampleRate);
 
@@ -131,8 +137,8 @@ bool FfmpegEncoderOutput::initialize(const Attributes &attributes)
 	addAttribute("audioSampleFormat", sampleFormats[6], sampleFormats);
 
 ////output////////////////////////
-	m_location="default.mp4";
-	addAttribute("outputLocation", m_location);
+	m_outputLocation="default.mp4";
+	addAttribute("outputLocation", m_outputLocation);
 
 	m_videoSinkPad=addSinkPad("Sink", "[{\"mime\":\"video/*\"}, {\"mime\":\"image/*\"}]");
 	m_audioSinkPad=addSinkPad("AudioSink", "[{\"mime\":\"audio/raw\"}]");
@@ -250,8 +256,31 @@ void FfmpegEncoderOutput::onAttributeChanged(std::string name, SharedAttribute a
 {
 	if(name == "enable")
 		m_enabled=attribute->toBool();
+	else if(name=="videoEncoder")
+	{
+		std::string encoderName=attribute->toString();
+		m_videoOutputEncoder=getVideoEncoderIndexFromUiName(encoderName);
+	}
+	else if(name=="videoProfile")
+	{
+		std::string profile=attribute->toString();
+		m_videoOutputProfile=getVideoProfileIndex(profile);
+	}
+	else if(name=="videoBitrate")
+		m_videoOutputBitrate=attribute->toInt();
+	else if(name=="videoKeyframeInterval")
+		m_videoOutputKeyFrameInterval=attribute->toInt();
+	else if(name=="audioEncoder")
+	{
+		std::string encoderName=attribute->toString();
+		m_audioOutputEncoder=getAudioEncoderIndexFromUiName(encoderName);
+	}
+	else if(name=="audioBitrate")
+		m_audioOutputBitrate=attribute->toInt();
+	else if(name=="audioSampleRate")
+		m_audioOutputSampleRate=attribute->toInt();
 	else if(name == "outputLocation")
-		m_location=attribute->toString();
+		m_outputLocation=attribute->toString();
 }
 
 int FfmpegEncoderOutput::writeFrame(const AVRational *time_base, AVStream *st, AVPacket *pkt)
@@ -265,9 +294,9 @@ int FfmpegEncoderOutput::writeFrame(const AVRational *time_base, AVStream *st, A
 	int ret;
 
 	if(st == m_videoStream)
-		OutputDebugStringA((boost::format("write video: pts time:%d\n")%pkt->pts).str().c_str());
+		Limitless::Log::message("FfmpegEncoderOutput", (boost::format("write video: pts time:%d\n")%pkt->pts).str().c_str());
 	else
-		OutputDebugStringA((boost::format("write audio: pts time:%d\n")%pkt->pts).str().c_str());
+		Limitless::Log::message("FfmpegEncoderOutput", (boost::format("write audio: pts time:%d\n")%pkt->pts).str().c_str());
 
 	ret=av_interleaved_write_frame(m_formatContext, pkt);
 //	if(ret<0)
@@ -451,7 +480,7 @@ int FfmpegEncoderOutput::writeVideoFrame(SharedIImageSample imageSample)
 	AVRational rational={1, 1000000};//media pipeline in useconds
 	m_videoFrame->pts=av_rescale_q(imageSample->timestamp()-m_videoStartTime, rational, codecContext->time_base);
 
-	OutputDebugStringA((boost::format("encode video: pts time:%d\n")%m_videoFrame->pts).str().c_str());
+	Limitless::Log::message("FfmpegEncoderOutput", (boost::format("encode video: pts time:%d\n")%m_videoFrame->pts).str().c_str());
 	/* encode the image */
 	ret=avcodec_encode_video2(codecContext, &pkt, m_videoFrame, &got_packet);
 	
@@ -690,7 +719,7 @@ int FfmpegEncoderOutput::writeAudioFrame(SharedIAudioSample audioSample)
 
 		if(m_samplesInAudioFrame>=m_audioFrame->nb_samples)
 		{
-			OutputDebugStringA((boost::format("encode audio: pts time:%d\n")%m_audioFrame->pts).str().c_str());
+			Limitless::Log::message("FfmpegEncoderOutput", (boost::format("encode audio: pts time:%d\n")%m_audioFrame->pts).str().c_str());
 
 			ret=avcodec_encode_audio2(codecContext, &pkt, m_audioFrame, &got_packet);
 			if(ret < 0)
@@ -720,11 +749,11 @@ bool FfmpegEncoderOutput::openOutput()
 	int ret;
 
 	/* allocate the output media context */
-	avformat_alloc_output_context2(&m_formatContext, NULL, "FLV", m_location.c_str());
+	avformat_alloc_output_context2(&m_formatContext, NULL, "FLV", m_outputLocation.c_str());
 	if(!m_formatContext)
 	{
 //		printf("Could not deduce output format from file extension: using MPEG.\n");
-		avformat_alloc_output_context2(&m_formatContext, NULL, "mpeg", m_location.c_str());
+		avformat_alloc_output_context2(&m_formatContext, NULL, "mpeg", m_outputLocation.c_str());
 	}
 	if(!m_formatContext)
 	{
@@ -740,12 +769,12 @@ bool FfmpegEncoderOutput::openOutput()
 	openVideo(m_videoCodec);
 	openAudio(m_audioCodec);
 
-//	av_dump_format(m_formatContext, 0, m_location, 1);
+//	av_dump_format(m_formatContext, 0, m_outputLocation, 1);
 
 	/* open the output file, if needed */
 	if(!(fmt->flags & AVFMT_NOFILE))
 	{
-		ret=avio_open(&m_formatContext->pb, m_location.c_str(), AVIO_FLAG_WRITE);
+		ret=avio_open(&m_formatContext->pb, m_outputLocation.c_str(), AVIO_FLAG_WRITE);
 
 		if(ret < 0)
 		{
@@ -866,6 +895,36 @@ int FfmpegEncoderOutput::getVideoEncoderIndexFromId(AVCodecID id)
 	for(size_t i=0; i<m_videoCodecs.size(); ++i)
 	{
 		if(m_videoCodecs[i].id==id)
+			return i;
+	}
+	return -1;
+}
+
+int FfmpegEncoderOutput::getVideoEncoderIndexFromUiName(std::string name)
+{
+	for(size_t i=0; i<m_videoCodecs.size(); ++i)
+	{
+		if(m_videoCodecs[i].uiName==name)
+			return i;
+	}
+	return -1;
+}
+
+int FfmpegEncoderOutput::getVideoProfileIndex(std::string name)
+{
+	for(size_t i=0; i<m_videoProfiles.size(); ++i)
+	{
+		if(m_videoProfiles[i]==name)
+			return i;
+	}
+	return -1;
+}
+
+int FfmpegEncoderOutput::getAudioEncoderIndexFromUiName(std::string name)
+{
+	for(size_t i=0; i<m_audioCodecs.size(); ++i)
+	{
+		if(m_audioCodecs[i].uiName==name)
 			return i;
 	}
 	return -1;

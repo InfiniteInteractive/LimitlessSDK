@@ -287,7 +287,7 @@ void FfmpegOutput::writeSample(FfmpegPacketSample *ffmpegPacketSample)
 
 	int avError;
 
-	OutputDebugStringA((boost::format("write frame: idx:%d size:%d pts:%d dts:%d\n")%localPacket.stream_index%localPacket.size%localPacket.pts%localPacket.dts).str().c_str());
+	Limitless::Log::message("FfmpegOutput", (boost::format("write frame: idx:%d size:%d pts:%d dts:%d\n")%localPacket.stream_index%localPacket.size%localPacket.pts%localPacket.dts).str().c_str());
 	avError=av_interleaved_write_frame(m_avFormatContext, &localPacket);
 
 	
@@ -319,7 +319,7 @@ void FfmpegOutput::writeAudioSample(FfmpegPacketSample *ffmpegPacketSample)
 	av_packet_rescale_ts(&localPacket, rational, m_audioStream->time_base);
 	localPacket.stream_index=m_audioStream->index;
 
-	OutputDebugStringA((boost::format("write audio: idx:%d size:%d pts:%d dts:%d\n")%localPacket.stream_index%localPacket.size%localPacket.pts%localPacket.dts).str().c_str());
+	Limitless::Log::message("FfmpegOutput", (boost::format("write audio: idx:%d size:%d pts:%d dts:%d\n")%localPacket.stream_index%localPacket.size%localPacket.pts%localPacket.dts).str().c_str());
 
 	avError=av_interleaved_write_frame(m_avFormatContext, &localPacket);
 }

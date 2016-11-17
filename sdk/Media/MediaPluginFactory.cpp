@@ -111,13 +111,14 @@ void MediaPluginFactory::loadPlugins(std::string path)
 			if(instance == NULL)
 			{
 				LPVOID lpMsgBuf;
-				
+                DWORD error=GetLastError();
+
 				FormatMessage( 
 					FORMAT_MESSAGE_ALLOCATE_BUFFER | 
 					FORMAT_MESSAGE_FROM_SYSTEM | 
 					FORMAT_MESSAGE_IGNORE_INSERTS,
 					NULL,
-					GetLastError(),
+                    error,
 					MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
 					(LPTSTR) &lpMsgBuf,
 					0,

@@ -1,3 +1,5 @@
+set(ADD_PACKAGE_FILE_DIR ${CMAKE_CURRENT_LIST_DIR})
+
 include(ExternalProject)
 
 #macro(ADD_PACKAGE_initCPM)
@@ -66,7 +68,8 @@ function(add_package DEPENDENCY)
 #		message(STATUS "Pkg Build Dir: ${DEPENDENCY_PACKAGE_BUILD_DIR}")
 #		message(STATUS "Pkg Install Dir: ${DEPENDENCY_PACKAGE_INSTALL_DIR}")
 
-		set(CPM_LOCAL_PACKAGE "${CMAKE_MODULE_PATH}/packages/package${DEPENDENCY}.cmake")
+#		set(CPM_LOCAL_PACKAGE "${CMAKE_MODULE_PATH}/packages/package${DEPENDENCY}.cmake")
+		set(CPM_LOCAL_PACKAGE "${ADD_PACKAGE_FILE_DIR}/packages/package${DEPENDENCY}.cmake")
 		if(EXISTS ${CPM_LOCAL_PACKAGE})
 			include(${CPM_LOCAL_PACKAGE})
 		else() #try default loading the package from github

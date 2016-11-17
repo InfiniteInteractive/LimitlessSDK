@@ -5,6 +5,9 @@
 
 project(Embed)
 
+hunter_add_package(Boost COMPONENTS system filesystem)
+find_package(Boost CONFIG REQUIRED system filesystem)
+
 #Set build directory
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${TOPLEVEL_BINARY_DIR}/bin/tools/ )
 # Second, for multi-config builds (e.g. msvc)
@@ -18,6 +21,7 @@ if(WIN32)
 	add_definitions(-DWINDOWS)
 endif()
 
+
 set(Embed_Sources
 	getopt.cpp
 	main.cpp
@@ -28,22 +32,28 @@ set(Embed_Headers
 )
 
 set(Embed_Libraries
-	${Boost_LIBRARIES}
+    Boost::system
+    Boost::filesystem
 )
 
-include_directories(${Boost_INCLUDE_DIR})
-link_directories(${Boost_LIBRARY_DIRS})
+#include_directories(${Boost_INCLUDE_DIR})
+#link_directories(${Boost_LIBRARY_DIRS})
 
 #copy boost filesystem to tools folder
-file(GLOB Boost_Filesystem_Dlls ${Boost_LIBRARY_DIRS}/boost_filesystem-*.dll ${Boost_LIBRARY_DIRS}/boost_system-*.dll)
+#file(GLOB Boost_Filesystem_Dlls ${Boost_LIBRARY_DIRS}/boost_filesystem-*.dll ${Boost_LIBRARY_DIRS}/boost_system-*.dll)
 message(STATUS "Boost files: ${Boost_Filesystem_Dlls}")
-file(COPY ${Boost_Filesystem_Dlls} DESTINATION ${CMAKE_BINARY_DIR}/bin/tools)
+#file(COPY ${Boost_Filesystem_Dlls} DESTINATION ${CMAKE_BINARY_DIR}/bin/tools)
+
+#get_property(boostFilesystemLocation TARGET Boost::filesystem PROPERTY LOCATION)
+#file(COPY ${boostFilesystemLocation} DESTINATION ${CMAKE_BINARY_DIR}/bin/tools)
 
 add_executable(Embed WIN32
 	${Embed_Sources}
 	${Embed_Headers}
 	${Embed_Uis}
 )
+target_link_libraries(Embed ${Embed_Libraries})
+
 if(WIN32)
    set_target_properties(Embed PROPERTIES LINK_FLAGS_DEBUG "/SUBSYSTEM:CONSOLE")
    set_target_properties(Embed PROPERTIES COMPILE_DEFINITIONS_DEBUG "_CONSOLE")

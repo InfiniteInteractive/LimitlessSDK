@@ -3,9 +3,12 @@ project(cvlib)
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
 
-include(AddPackage)
+#include(AddPackage)
 
-add_package("dlib" VERSION "19.0")
+#add_package("dlib" VERSION "19.0")
+
+hunter_add_package(dlib)
+find_package(dlib CONFIG REQUIRED)
 
 #find_package(FFTW)
 #find_package(dlib)
@@ -19,6 +22,7 @@ set(cvlib_sources
 set(cvlib_headers
 	cvlib/cvlibDefine.h
 	cvlib/image.h
+	cvlib/imageDLib.h
 	cvlib/match.h
 	cvlib/ppm.h
 	cvlib/simpleImage.h
@@ -27,7 +31,8 @@ set(cvlib_headers
 
 set(cvlib_libraries
 #	${FFTW_LIBRARIES}
-	${DLIB_LIBRARIES}
+#	${DLIB_LIBRARIES}
+	dlib::dlib
 	)
 
 add_library(cvlib SHARED
@@ -37,7 +42,7 @@ add_library(cvlib SHARED
 
 target_link_libraries(cvlib ${cvlib_libraries})
 #include_directories(${FFTW_INCLUDES})
-include_directories(${DLIB_INCLUDE_DIRS})
+#include_directories(${DLIB_INCLUDES})
 
 set_target_properties(cvlib PROPERTIES FOLDER "libraries")
 
@@ -46,4 +51,4 @@ create_target_launcher(cvlib
 	WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
 )
 
-add_dependencies(cvlib ${DLIB_TARGET})
+#add_dependencies(cvlib ${DLIB_TARGET})

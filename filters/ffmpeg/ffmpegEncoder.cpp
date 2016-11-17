@@ -71,6 +71,8 @@ m_isVideoEncoder(true),
 m_firstSample(true),
 m_hasAudio(false)
 {
+    m_width=0;
+    m_height=0;
 	m_audioFormatBuffer[0]=NULL;
 	m_audioFormatBuffer[1]=NULL;
 
@@ -704,15 +706,16 @@ void FfmpegEncoder::onLinkFormatChanged(SharedMediaPad pad, SharedMediaFormat fo
 			m_isVideoEncoder=true;
 
             if(format->exists("width"))
-            {
                 m_width=format->attribute("width")->toInt();
-                attribute("width")->fromInt(m_width);
-            }
+            else
+                m_width=0;
+            attribute("width")->fromInt(m_width);
             if(format->exists("height"))
-            {
                 m_height=format->attribute("height")->toInt();
-                attribute("height")->fromInt(m_height);
-            }
+            else
+                m_height=0;
+            attribute("height")->fromInt(m_height);
+
             updateVideoEncoderAttributes();
 
 //	//		CodecDetails::iterator iter=std::find(m_accessibleCodecs.begin(), m_accessibleCodecs.end(), m_videoCodecs[m_currentVideoEncoder].id);

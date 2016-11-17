@@ -1,24 +1,23 @@
-cmake_minimum_required (VERSION 2.8.9)
-#cmake_policy(SET CMP0020 NEW)
+cmake_minimum_required (VERSION 3.0)
 cmake_policy(VERSION 3.1.0)
-#if(POLICY CMP0020)
-#	cmake_policy(SET CMP0020 NEW)
-#endif()
-#if(POLICY CMP0026)
-#	cmake_policy(SET CMP0026 OLD)
-#endif()
-#if(POLICY CMP0043)
-#	cmake_policy(SET CMP0043 NEW)
-#endif()
-#if(POLICY CMP0053)
-#	cmake_policy(SET CMP0053 NEW)
-#endif()
+
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+message(STATUS "CMake prefix: $ENV{CMAKE_PREFIX_PATH}")
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMakeModules)
+message(STATUS "module path: ${CMAKE_MODULE_PATH}")
+
+#load Hunter packager
+include(HunterPackage)
+
+HunterGate(
+	URL "https://github.com/ruslo/hunter/archive/v0.16.30.tar.gz"
+    SHA1 "c5b159b48a3a842697f08fe2a72464adfd78a55d"
+	LOCAL
+)
 
 project(LimitlessSDK)
 
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
-message(STATUS "CMake prefix: $ENV{CMAKE_PREFIX_PATH}")
+set(CMAKE_DEBUG_POSTFIX "")
 
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Widgets REQUIRED)
@@ -31,10 +30,6 @@ set(QT5_PULGIN_DIR $ENV{QTDIR}/plugins)
 #find_package(GLEW REQUIRED)
 #message(STATUS "Glew include dir:${GLEW_INCLUDE_DIRS}")
 #message(STATUS "Glew libs:${GLEW_LIBRARIES}")
-
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMakeModules)
-
-message(STATUS "module path: ${CMAKE_MODULE_PATH}")
 
 #check for 64bit build
 if( "${CMAKE_SIZEOF_VOID_P}" EQUAL "8" )
@@ -61,14 +56,16 @@ set(LIBRARIES_PATH ${CMAKE_SOURCE_DIR}/libraries/)
 #endif(BUILD_x64)
 #set(Boost_LIBRARIES)
 
-set(Boost_USE_STATIC_LIBS OFF)
-set(Boost_USE_MULTITHREADED )
-set(Boost_USE_STATIC_RUNTIME OFF)
-set(BOOST_ALL_DYN_LINK ON)
+#set(Boost_USE_STATIC_LIBS OFF)
+#set(Boost_USE_MULTITHREADED )
+#set(Boost_USE_STATIC_RUNTIME OFF)
+#set(BOOST_ALL_DYN_LINK ON)
 add_definitions(-DBOOST_ALL_DYN_LINK)
+#
+#set(BOOST_ROOT $ENV{BOOST_DIR})
+hunter_add_package(Boost COMPONENTS thread regex filesystem program_options system)
+find_package(Boost REQUIRED COMPONENTS thread regex filesystem program_options system)
 
-set(BOOST_ROOT $ENV{BOOST_DIR})
-find_package(Boost REQUIRED COMPONENTS thread program_options system)
 message(status "******Boost")
 message(status "*Include Dir: ${Boost_INCLUDE_DIR}")
 message(status "*Libraries Dir: ${Boost_LIBRARY_DIRS}")

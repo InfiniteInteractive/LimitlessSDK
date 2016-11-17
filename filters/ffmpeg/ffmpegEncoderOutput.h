@@ -69,6 +69,9 @@ private:
 
 	void queryCodecs();
 	int getVideoEncoderIndexFromId(AVCodecID id);
+	int getVideoEncoderIndexFromUiName(std::string name);
+	int getVideoProfileIndex(std::string name);
+	int getAudioEncoderIndexFromUiName(std::string name);
 
 	Limitless::EventQueueThread<PadSample> m_outputQueue;
 
@@ -88,6 +91,7 @@ private:
 
 	typedef std::vector<CodecDescription> CodecDescriptions;
 	CodecDescriptions m_videoCodecs;
+	std::vector<std::string> m_videoProfiles;
 	CodecDescriptions m_audioCodecs;
 
 //Settings
@@ -109,6 +113,9 @@ private:
 	AVRational m_videoInTimeBase;
 
 	int m_videoOutputEncoder;
+	int m_videoOutputProfile;
+	int m_videoOutputBitrate;
+	int m_videoOutputKeyFrameInterval;
 
 //audio encoder
 	AVCodecID m_audioCodecId;
@@ -128,12 +135,13 @@ private:
 	int m_audioOutputEncoder;
 	int m_audioOutputChannels;
 	int m_audioOutputSampleRate;
+	int m_audioOutputBitrate;
 	AVSampleFormat m_audioOutputSampleFormat;
 
 	size_t m_samplesInAudioFrame;
 
 //output
-	std::string m_location;
+	std::string m_outputLocation;
 
 	AVFormatContext *m_formatContext;
 };

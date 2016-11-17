@@ -9,6 +9,9 @@ project(MediaPipeline)
 add_definitions(-DNOMINMAX)
 #add_definitions(-DBOOST_ALL_DYN_LINK)
 
+hunter_add_package(Boost COMPONENTS system thread)
+find_package(Boost CONFIG REQUIRED system thread)
+
 set(MediaPipeline_Sources
 	MediaPipeline.cpp
 )
@@ -24,6 +27,8 @@ set(MediaPipeline_Libraries
 	Utilities.lib
 	Base.lib
 	Media.lib
+    Boost::system
+    Boost::thread
 )
 
 include_directories(${SDK_INCLUDES})

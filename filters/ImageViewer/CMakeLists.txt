@@ -12,8 +12,15 @@ find_package(Qt5OpenGL REQUIRED)
 #find_package(GLEW)
 include(AddPackage)
 
-add_package("glm" VERSION "0.9.7.6")
-add_package("glew" VERSION "2.0.0")
+hunter_add_package(glm)
+find_package(glm)
+hunter_add_package(glew)
+find_package(glew CONFIG REQUIRED)
+hunter_add_package(Boost COMPONENTS system thread chrono date_time)
+find_package(Boost CONFIG REQUIRED system thread chrono date_time)
+
+#add_package("glm" VERSION "0.9.7.6")
+#add_package("glew" VERSION "2.0.0")
 add_package("opencl")
 
 #remove min and max macro declares from windows builds, causes issues with std::min/max
@@ -33,14 +40,17 @@ set(ImageViewer_Headers
 )
 
 set(ImageViewer_Libraries
-	${Boost_LIBRARIES}
-	${OPENCL_LIBRARIES}
-	opengl32.lib
-	glu32.lib
-	Utilities.lib
-	Base.lib
-	Media.lib
-	${GLEW_LIBRARIES}
+    ${OPENCL_LIBRARIES}
+    opengl32.lib
+    glu32.lib
+    Utilities.lib
+    Base.lib
+    Media.lib
+    glew::glew
+    Boost::system
+    Boost::thread
+    Boost::chrono
+    Boost::date_time
 )
 
 QT5_WRAP_UI(ImageViewer_Uis
@@ -79,7 +89,7 @@ add_dependencies(ImageViewer Utilities)
 add_dependencies(ImageViewer Base)
 add_dependencies(ImageViewer Media)
 add_dependencies(ImageViewer ControlStructures)
-add_dependencies(ImageViewer ${GLM_TARGET})
+#add_dependencies(ImageViewer ${GLM_TARGET})
 
 create_target_launcher(ImageViewer
 	RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS}

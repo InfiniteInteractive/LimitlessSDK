@@ -8,7 +8,13 @@ project(Media)
 include(AddPackage)
 
 add_package("opencl")
-add_package("glew" VERSION "2.0.0")
+#add_package("glew" VERSION "2.0.0")
+
+hunter_add_package(glew)
+find_package(glew CONFIG REQUIRED)
+
+hunter_add_package(Boost COMPONENTS system filesystem)
+find_package(Boost CONFIG REQUIRED system filesystem)
 
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
@@ -93,22 +99,21 @@ set(Media_Headers
 )
 
 set(Media_Libraries
-	${Boost_LIBRARIES}
+#	${Boost_LIBRARIES}
 	${OPENCL_LIBRARIES}
 	Utilities.lib
 	Base.lib
 	${OPENGL_gl_LIBRARY}
 	Opengl32.lib
-	${GLEW_LIBRARIES}
+#	${GLEW_LIBRARIES}
+	Boost::system
+	Boost::filesystem
+	glew::glew
 )
 
 include_directories(${SDK_INCLUDES})
 link_directories(${LIBRARY_OUTPUT_PATH})
 
-include_directories(${Boost_INCLUDE_DIR})
-link_directories(${Boost_LIBRARY_DIRS})
-
-message(STATUS "GLEW include: ${GLEW_INCLUDE_DIRS}")
 include_directories(${GLEW_INCLUDE_DIRS})
 include_directories(${OPENGL_EX_INCLUDE_DIR})
 

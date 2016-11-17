@@ -11,6 +11,9 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
 
+hunter_add_package(Boost COMPONENTS system filesystem)
+find_package(Boost CONFIG REQUIRED system filesystem)
+
 set(QtComponents_Sources
 	customStyleSheet.cpp
 	dialogWrapper.cpp
@@ -40,10 +43,11 @@ set(QtComponents_Headers
 )
 
 set(QtComponents_Libraries
-	${Boost_LIBRARIES}
 	Utilities.lib
 	Base.lib
 	Media.lib
+    Boost::system
+    Boost::filesystem
 )
 
 QT5_WRAP_UI(QtComponents_Uis

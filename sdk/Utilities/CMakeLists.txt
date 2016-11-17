@@ -7,7 +7,12 @@ project(Utilities)
 
 include(AddPackage)
 
-add_package("glm" VERSION "0.9.7.6")
+#add_package("glm" VERSION "0.9.7.6")
+hunter_add_package(glm)
+find_package(glm CONFIG REQUIRED)
+
+hunter_add_package(Boost COMPONENTS system regex filesystem thread)
+find_package(Boost CONFIG REQUIRED system regex filesystem thread)
 
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
@@ -38,20 +43,24 @@ set(Utilities_Headers
 )
 
 set(Utilities_Libraries
-	${Boost_LIBRARIES}
+#	${Boost_LIBRARIES}
+	Boost::regex
+	Boost::filesystem
+	Boost::thread
+    Boost::system
 	Base.lib
 )
 
 include_directories(${SDK_INCLUDES})
 link_directories(${LIBRARY_OUTPUT_PATH})
 
-include_directories(${Boost_INCLUDE_DIR})
-link_directories(${Boost_LIBRARY_DIRS})
+#include_directories(${Boost_INCLUDE_DIR})
+#link_directories(${Boost_LIBRARY_DIRS})
 
-add_definitions(-DRAPIDJSON_HAS_STDSTRING)
-include_directories(${RAPIDJSON_INCLUDE_DIRS})
+#add_definitions(-DRAPIDJSON_HAS_STDSTRING)
+#include_directories(${RAPIDJSON_INCLUDE_DIRS})
 
-message(STATUS "Utils GLM_INCLUDE_DIRS:${GLM_INCLUDE_DIRS}")
+#message(STATUS "Utils GLM_INCLUDE_DIRS:${GLM_INCLUDE_DIRS}")
 include_directories(${GLM_INCLUDE_DIRS})
 
 add_library(Utilities SHARED
@@ -67,7 +76,7 @@ set_target_properties(Utilities PROPERTIES
 )
 
 add_dependencies(Utilities Base)
-add_dependencies(Utilities ${GLM_TARGET})
+#add_dependencies(Utilities ${GLM_TARGET})
 
 create_target_launcher(Utilities
 	RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS}

@@ -11,36 +11,45 @@ add_definitions(-DNOMINMAX)
 include(AddPackage)
 
 add_package("opencl")
-add_package("glew" VERSION "2.0.0")
+#add_package("glew" VERSION "2.0.0")
+
+hunter_add_package(glew)
+find_package(glew CONFIG REQUIRED)
+
+hunter_add_package(Boost COMPONENTS system thread chrono date_time)
+find_package(Boost CONFIG REQUIRED system thread chrono date_time)
 
 set(ControlStructures_Sources
-	branch.cpp
-	combine.cpp
-	gpuUploadSample.cpp
-	gpuUpload.cpp
-	join.cpp
-	synchronize.cpp
-	tee.cpp
+    branch.cpp
+    combine.cpp
+    gpuUploadSample.cpp
+    gpuUpload.cpp
+    join.cpp
+    synchronize.cpp
+    tee.cpp
 )
 
 set(ControlStructures_Headers
-	branch.h
-	combine.h
-	gpuUploadSample.h
-	gpuUpload.h
-	join.h
-	synchronize.h
-	tee.h
+    branch.h
+    combine.h
+    gpuUploadSample.h
+    gpuUpload.h
+    join.h
+    synchronize.h
+    tee.h
 )
 
 set(ControlStructures_Libraries
-	${Boost_LIBRARIES}
-	${OPENCL_LIBRARIES}
-	Utilities.lib
-	Base.lib
-	Media.lib
-	opengl32.lib
-	${GLEW_LIBRARIES}
+    ${OPENCL_LIBRARIES}
+    Utilities.lib
+    Base.lib
+    Media.lib
+    opengl32.lib
+    glew::glew
+    Boost::system
+    Boost::thread
+    Boost::chrono
+    Boost::date_time
 )
 
 include_directories(${SDK_INCLUDES})

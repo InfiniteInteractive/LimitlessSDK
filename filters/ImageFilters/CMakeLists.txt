@@ -14,10 +14,16 @@ add_definitions(-DNOMINMAX)
 include(AddPackage)
 
 #add_package("zlib" VERSION "1.2.8")
-add_package("libpng" VERSION "1.6.23")
+#add_package("libpng" VERSION "1.6.23")
 add_package("opencl")
-add_package("glew" VERSION "2.0.0")
+#add_package("glew" VERSION "2.0.0")
 
+hunter_add_package(Boost COMPONENTS system thread)
+find_package(Boost CONFIG REQUIRED system thread)
+hunter_add_package(png)
+find_package(png CONFIG REQUIRED)
+hunter_add_package(glew)
+find_package(glew CONFIG REQUIRED)
 
 set(ImageFilters_Sources
 	ColorConversion.cpp
@@ -34,13 +40,14 @@ set(ImageFilters_Headers
 )
 
 set(ImageFilters_Libraries
-	${Boost_LIBRARIES}
 	Utilities.lib
 	Base.lib
 	Media.lib
 	${OPENCL_LIBRARIES}
-	${LIBPNG_LIBRARIES}
-	${GLEW_LIBRARIES}
+    PNG::png
+    glew::glew
+    Boost::system
+    Boost::thread
 	)
 
 
@@ -65,7 +72,8 @@ include_directories(${OPENGL_EX_INCLUDE_DIR})
 include_directories(${OPENCL_INCLUDE_DIRS})
 link_directories(${OPENCL_LIB_DIR})
 
-include_directories(${LIBPNG_INCLUDE_DIRS})
+#include_directories(${LIBPNG_INCLUDE_DIRS})
+include_directories(${PNG_INCLUDE_DIRS})
 
 add_library(ImageFilters SHARED
 	${ImageFilters_Sources}
@@ -83,7 +91,7 @@ set_target_properties(ImageFilters PROPERTIES
 add_dependencies(ImageFilters Utilities)
 add_dependencies(ImageFilters Base)
 add_dependencies(ImageFilters Media)
-add_dependencies(ImageFilters ${LIBPNG_TARGET})
+#add_dependencies(ImageFilters ${LIBPNG_TARGET})
 
 create_target_launcher(ImageFilters
 	RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS}
