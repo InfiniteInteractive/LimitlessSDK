@@ -116,8 +116,8 @@ Works Visual Studio 2015, requires [CMake](https://cmake.org/)
 You will need several libraries to build the frame work. However some of these are handled by a CMake package handler ([Hunter](https://github.com/ruslo/hunter)) and will be downloaded/compiled when cmake is executed. 
 
 Required (manual install)
-* _Qt 5.X+_ - if using any of the filters or libraries using them [link](http://www.qt.io/developers/) (todo: make optional)
-* _Ffmpeg libs_ - if using the ffmpeg filter [link](http://ffmpeg.org/) (todo: make optional)
+* _Qt 5.X+_ - [link](http://www.qt.io/developers/) (todo: make optional)
+* _Ffmpeg libs_ - [link](http://ffmpeg.org/) (todo: make optional)
  
 Required (package manager)
 * _Boost 1.5X+_
