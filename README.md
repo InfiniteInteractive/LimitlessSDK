@@ -113,25 +113,21 @@ Past the above you need to provide some function overrides to communicate with t
 ##Building the frame work
 Works Visual Studio 2015, requires [CMake](https://cmake.org/)
 
-You will need several libraries to build the frame work. However some of these are handled by a CMake package handler and will be downloaded/compiled when cmake is executed. 
+You will need several libraries to build the frame work. However some of these are handled by a CMake package handler ([Hunter](https://github.com/ruslo/hunter)) and will be downloaded/compiled when cmake is executed. 
 
-Required (manual)
-* _Boost 1.5X+_ [link](http://www.boost.org/)
-
-Optional (may require some work to turn off filters and libs that use it)
-* _Qt 5.X+_ - if using any of the filters or libraries using them [link](http://www.qt.io/developers/)
-* _Ffmpeg libs_ - if using the ffmpeg filter [link](http://ffmpeg.org/)
+Required (manual install)
+* _Qt 5.X+_ - if using any of the filters or libraries using them [link](http://www.qt.io/developers/) (todo: make optional)
+* _Ffmpeg libs_ - if using the ffmpeg filter [link](http://ffmpeg.org/) (todo: make optional)
  
 Required (package manager)
+* _Boost 1.5X+_
 * _Glew_ 
 * _Glm_
 * _RapidJson_
 * _opencl_
+* _fftw_ (todo: make optional)
+* _dlib_ (todo: make optional)
+* _zlib_ (todo: make optional)
+* _libpng_ (todo: make optional)
 
-Optional (package manager)
-* _fftw_
-* _dlib_
-* _zlib_
-* _libpng_
-
-There is a batch file in the root dir vs2015x64_rebuild.bat, inside it are several vars that can be set to the directories where these libraries are. Once you set them you can run the bat file which will use CMake to create the VS solution files. Running vs2015x64.bat will build the VS solution file an automatically start VS with that solution.
+There is a batch file in the root dir vs2015x64_rebuild.bat, inside it are variables that can be set to the directories for Qt and ffmpeg. Once you set them you can run the bat file which will use CMake to create the VS solution files. Running vs2015x64.bat will build the VS solution file an automatically start VS with that solution.
