@@ -244,12 +244,13 @@ void GPUContext::internalInitOpenCL()
 	std::string vendor;
 	std::string profile;
 	std::string version;
+    std::string languages;
 
 	m_openCLDevice.getInfo(CL_DEVICE_NAME, &m_name);
 	m_openCLDevice.getInfo(CL_DEVICE_EXTENSIONS, &extensions);
 	m_openCLDevice.getInfo(CL_DEVICE_VENDOR, &vendor);
 	m_openCLDevice.getInfo(CL_DEVICE_PROFILE, &profile);
-	m_openCLDevice.getInfo(CL_DEVICE_OPENCL_C_VERSION, &version);
+	m_openCLDevice.getInfo(CL_DEVICE_IL_VERSION, &languages);
 
 	m_openCLContext=cl::Context(m_openCLDevice, clContextProps, NULL, NULL, &error);
 	if(error != CL_SUCCESS)

@@ -12,6 +12,7 @@ add_subdirectory(ControlStructures)
 add_subdirectory(ffmpeg)
 #add_subdirectory(GStreamerPlugin)
 add_subdirectory(ImageFilters)
+add_subdirectory(ImageSource)
 add_subdirectory(ImageViewer)
 
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/privateProjects.cmake)

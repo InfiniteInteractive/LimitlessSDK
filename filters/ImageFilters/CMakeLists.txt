@@ -27,6 +27,7 @@ find_package(glew CONFIG REQUIRED)
 
 set(ImageFilters_Sources
 	ColorConversion.cpp
+    ClippingMask.cpp
 	MoveToCpu.cpp
 	MoveToGpu.cpp
 	Overlay.cpp
@@ -34,6 +35,7 @@ set(ImageFilters_Sources
 
 set(ImageFilters_Headers
 	ColorConversion.h
+    ClippingMask.h
 	MoveToCpu.h
 	MoveToGpu.h
 	Overlay.h

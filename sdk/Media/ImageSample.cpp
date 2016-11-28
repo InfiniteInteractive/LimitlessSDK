@@ -91,6 +91,14 @@ void ImageSample::resize(unsigned int width, unsigned int pitch, unsigned int he
 	m_channelBits=channelBits;
 }
 
+void ImageSample::copy(ImageSample *imageSample)
+{
+    resize(imageSample->width(), imageSample->pitch(), imageSample->height(), imageSample->channels(), imageSample->channelBits());
+
+    if(m_size>=imageSample->size())
+        memcpy(m_buffer, imageSample->buffer(), imageSample->size());
+}
+
 bool ImageSample::save(std::string fileName)
 {
 	if(m_channels==4)

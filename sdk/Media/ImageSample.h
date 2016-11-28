@@ -36,6 +36,8 @@ public:
 	void resize(unsigned int width, unsigned int height, unsigned int channles=3, unsigned int channelBits=8);
 	void resize(unsigned int width, unsigned int pitch, unsigned int height, unsigned int channles, unsigned int channelBits);
 
+    void copy(ImageSample *imageSample);
+
 	virtual bool save(std::string fileName);
 
 private:
