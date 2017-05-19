@@ -44,19 +44,20 @@ public:
 	{
 		std::unique_lock<std::mutex> lock(m_queuMutex);
 
-		m_breakWait=false;
-		while(m_queue.empty())
-		{
-			m_conditionVariable.wait(lock);
-
-			if(m_breakWait)
-				return _Type();
-		}
-
-		_Type value=m_queue.front();
-
-		m_queue.pop_front();
-		return value;
+        return pop_front(lock);
+//		m_breakWait=false;
+//		while(m_queue.empty())
+//		{
+//			m_conditionVariable.wait(lock);
+//
+//			if(m_breakWait)
+//				return _Type();
+//		}
+//
+//		_Type value=m_queue.front();
+//
+//		m_queue.pop_front();
+//		return value;
 	}
 
 	template< class Rep, class Period >
@@ -127,7 +128,7 @@ public:
 	{
 		std::unique_lock<std::mutex> lock(m_queuMutex);
 
-		return m_queue.size();
+		return size(lock);
 	}
 
 	void waitWhileEmpty()
@@ -149,6 +150,25 @@ public:
 		return std::unique_lock<std::mutex>(m_queuMutex);
 	}
 
+    _Type pop_front(std::unique_lock<std::mutex> &lock)
+    {
+        assert(lock.mutex()==&m_queuMutex);
+
+        m_breakWait=false;
+        while(m_queue.empty())
+        {
+            m_conditionVariable.wait(lock);
+
+            if(m_breakWait)
+                return _Type();
+        }
+
+        _Type value=m_queue.front();
+
+        m_queue.pop_front();
+        return value;
+    }
+
 	void push_back(_Type value, std::unique_lock<std::mutex> &lock)
 	{
 		assert(lock.mutex() == &m_queuMutex);
@@ -167,6 +187,13 @@ public:
 		m_queue.push_back(value);
 		m_conditionVariable.notify_all();
 	}
+
+    size_t size(std::unique_lock<std::mutex> &lock)
+    {
+        assert(lock.mutex()==&m_queuMutex);
+
+        return m_queue.size();
+    }
 
 	void breakWait()
 	{

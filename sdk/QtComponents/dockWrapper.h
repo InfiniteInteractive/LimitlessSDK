@@ -19,6 +19,9 @@ public:
     DockWrapper(QWidget *widget, QWidget *parent=0);
     ~DockWrapper();
 
+    virtual QSize sizeHint() const;
+    virtual QSize minimumSizeHint() const;
+
  public slots:
     void childAccepted();
     void childRejected();

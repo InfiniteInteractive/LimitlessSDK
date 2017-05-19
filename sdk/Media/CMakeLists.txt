@@ -5,16 +5,8 @@
 
 project(Media)
 
-include(AddPackage)
-
-add_package("opencl")
-#add_package("glew" VERSION "2.0.0")
-
 hunter_add_package(glew)
 find_package(glew CONFIG REQUIRED)
-
-hunter_add_package(Boost COMPONENTS system filesystem)
-find_package(Boost CONFIG REQUIRED system filesystem)
 
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
@@ -99,16 +91,15 @@ set(Media_Headers
 )
 
 set(Media_Libraries
-#	${Boost_LIBRARIES}
-	${OPENCL_LIBRARIES}
-	Utilities.lib
-	Base.lib
-	${OPENGL_gl_LIBRARY}
-	Opengl32.lib
-#	${GLEW_LIBRARIES}
-	Boost::system
-	Boost::filesystem
-	glew::glew
+    OpenCL::OpenCL
+    OpenCL-cpp::OpenCL-cpp
+    Utilities.lib
+    Base.lib
+    ${OPENGL_gl_LIBRARY}
+    Opengl32.lib
+    Boost::system
+    Boost::filesystem
+    glew::glew
 )
 
 include_directories(${SDK_INCLUDES})
@@ -144,7 +135,7 @@ set_target_properties(Media PROPERTIES
 
 add_dependencies(Media Base)
 add_dependencies(Media Utilities)
-add_dependencies(Media ${OPENCL_TARGET})
+#add_dependencies(Media ${OPENCL_TARGET})
 
 create_target_launcher(Media
 	RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS}

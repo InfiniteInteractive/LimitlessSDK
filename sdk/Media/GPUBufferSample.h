@@ -5,12 +5,15 @@
 #include "Media/MediaSample.h"
 #include "Media/MediaSampleFactory.h"
 
+#ifdef Media_EXPORTS
 #include <GL/glew.h>
-//#ifdef _WINDOWS
-//#define WIN32_LEAN_AND_MEAN
-//#include <windows.h>
-//#endif
-//#include "GL/gl.h"
+#else
+#ifdef _WINDOWS
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif //_WINDOWS
+#include <gl/gl.h>
+#endif
 
 #include "CL/cl.hpp"
 
@@ -31,6 +34,8 @@ public:
 
 	GLuint texture(){return m_texture;}
 	GLuint pbo(){return m_pbo;}
+
+    cl::BufferGL glBuffer() { return m_buffer; }
 
 	//MediaSample
 	virtual unsigned char *buffer();

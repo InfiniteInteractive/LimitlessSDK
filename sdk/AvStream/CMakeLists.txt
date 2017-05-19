@@ -7,6 +7,11 @@ project(AvStream)
 
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)
+#add define to remove atomic alignment warning
+add_definitions(-D_ENABLE_ATOMIC_ALIGNMENT_FIX)
+
+#hunter_add_package(Boost COMPONENTS system thread chrono date_time)
+#find_package(Boost CONFIG REQUIRED system thread chrono date_time)
 
 set(AvStream_Sources
 	AvClientConnection.cpp
@@ -29,6 +34,10 @@ set(AvStream_Libraries
 	Utilities.lib
 	Base.lib
 	Media.lib
+    Boost::system
+    Boost::thread
+    Boost::chrono
+    Boost::date_time
 )
 
 include_directories(${SDK_INCLUDES})

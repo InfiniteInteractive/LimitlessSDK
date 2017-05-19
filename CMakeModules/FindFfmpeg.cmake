@@ -14,7 +14,7 @@
 #If environment variable FFMPEGDIR is specified, it has same effect as FFMPEG_ROOT
 
 MACRO(FFMPEG_FIND varname shortname headername)
-#	message(status "FFMPEG_FIND: ${varname}, ${shortname}, ${headername}")
+#	message(status "FFMPEG_FIND: ${FFMPEG_ROOT} ${varname}, ${shortname}, ${headername}")
 
 	FIND_PATH(FFMPEG_${varname}_INCLUDE_DIRS ${headername}
 	PATHS 

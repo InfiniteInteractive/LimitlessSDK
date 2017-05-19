@@ -22,6 +22,10 @@ void OpenClThread::start(cl::Context openCLContext, cl::CommandQueue openCLComan
 void OpenClThread::stop()
 {
 	stopThread();
+
+    //need to release items we have or deconstructor will handle it in another thread with fault
+    m_openCLComandQueue=cl::CommandQueue();
+    m_openCLContext=cl::Context();
 }
 
 cl_int OpenClThread::enqueueWriteImage(cl::Image &image, const cl::size_t<3> &origin, const cl::size_t<3> &region, size_t rowPitch, size_t slicePitch, void *ptr,

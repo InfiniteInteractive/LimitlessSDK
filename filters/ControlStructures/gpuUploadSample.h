@@ -5,8 +5,9 @@
 #include "Media/GPUImageSample.h"
 #include "Media/MediaSampleFactory.h"
 
-#include <GL/glew.h>
-#include "CL/cl.hpp"
+//#include <GL/glew.h>
+//#include <gl/gl.h>
+#include <CL/cl.hpp>
 
 //namespace Limitless
 //{

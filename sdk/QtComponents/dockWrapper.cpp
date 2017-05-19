@@ -26,6 +26,16 @@ DockWrapper::~DockWrapper()
 
 }
 
+QSize DockWrapper::sizeHint() const
+{
+    return widget()->sizeHint();
+}
+
+QSize DockWrapper::minimumSizeHint() const
+{
+    return widget()->minimumSizeHint();
+}
+
 void DockWrapper::childAccepted()
 {
     emit accepted();

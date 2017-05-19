@@ -159,6 +159,8 @@ private:
 	void mouseReleaseEvent(QMouseEvent* event);
 	void mouseMoveEvent(QMouseEvent* event);
 
+    static bool m_glewInit;
+
 	QThread *getQThread();
 
 	QThread *m_processQThread;

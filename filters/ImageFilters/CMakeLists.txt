@@ -15,11 +15,11 @@ include(AddPackage)
 
 #add_package("zlib" VERSION "1.2.8")
 #add_package("libpng" VERSION "1.6.23")
-add_package("opencl")
+#add_package("opencl")
 #add_package("glew" VERSION "2.0.0")
 
-hunter_add_package(Boost COMPONENTS system thread)
-find_package(Boost CONFIG REQUIRED system thread)
+#hunter_add_package(Boost COMPONENTS system thread)
+#find_package(Boost CONFIG REQUIRED system thread)
 hunter_add_package(png)
 find_package(png CONFIG REQUIRED)
 hunter_add_package(glew)
@@ -27,6 +27,7 @@ find_package(glew CONFIG REQUIRED)
 
 set(ImageFilters_Sources
 	ColorConversion.cpp
+    ClippingMask.cpp
 	MoveToCpu.cpp
 	MoveToGpu.cpp
 	Overlay.cpp
@@ -34,6 +35,7 @@ set(ImageFilters_Sources
 
 set(ImageFilters_Headers
 	ColorConversion.h
+    ClippingMask.h
 	MoveToCpu.h
 	MoveToGpu.h
 	Overlay.h
@@ -43,7 +45,7 @@ set(ImageFilters_Libraries
 	Utilities.lib
 	Base.lib
 	Media.lib
-	${OPENCL_LIBRARIES}
+	OpenCL::OpenCL
     PNG::png
     glew::glew
     Boost::system

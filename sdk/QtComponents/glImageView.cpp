@@ -1,4 +1,5 @@
-#include "glwidget.h"
+#include "glImageView.h"
+
 #include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/numeric/ublas/vector.hpp>
@@ -12,7 +13,7 @@
 #include <QtPlatformHeaders/QWGLNativeContext>
 #include <QtGui/QWindow>
 
-#include "ControlStructures/gpuUploadSample.h"
+//#include "ControlStructures/gpuUploadSample.h"
 
 #include <iostream>
 #include <fstream>
@@ -33,7 +34,9 @@
 #endif //GL_BGRA
 
 using namespace boost::numeric;
-using namespace Limitless;
+
+namespace Limitless
+{
 
 std::string vertexShader="\
 #version 330\n\
@@ -84,9 +87,9 @@ void main()\n\
 	color=vec3(1,0,0);\n\
 }";
 
-bool GLWidget::m_glewInit=false;
+//bool GLImageView::m_glewInit=false;
 
-GLWidget::GLWidget(QWidget *parent, GLWidget *masterWidget):
+GLImageView::GLImageView(QWidget *parent, GLImageView *masterWidget):
 QGLWidget(parent),
 m_masterWidget(masterWidget),
 m_displayMode(SINGLE),
@@ -102,7 +105,8 @@ m_rotY(0.0f),
 m_rotZ(0.0f),
 m_init(false),
 m_endThread(false),
-m_readyToInit(false)
+m_readyToInit(false),
+m_glewInit(false)
 {
 	m_sampleInUse=false;
 	m_textureLoaded=false;
@@ -117,11 +121,11 @@ m_readyToInit(false)
 
 	doneCurrent();
 
-//	GPUContext::callback(std::bind(&GLWidget::getOpenglThread, this));
+//	GPUContext::callback(std::bind(&GLImageView::getOpenglThread, this));
 
 //	getMainGLHandle();
 
-	m_drawCallback.reset(new Limitless::DrawCallback(std::bind(&GLWidget::draw, this)));
+	m_drawCallback.reset(new Limitless::DrawCallback(std::bind(&GLImageView::draw, this)));
 	GPUContext::addDrawCallback(m_drawCallback);
 //	if(m_masterWidget == NULL)
 //	{
@@ -141,7 +145,7 @@ m_readyToInit(false)
 //	m_event.notify_one();
 }
 
-GLWidget::GLWidget(QGLContext *context, QWidget *parent):
+GLImageView::GLImageView(QGLContext *context, QWidget *parent):
 QGLWidget(context, parent),
 m_masterWidget(NULL),
 m_displayMode(SINGLE),
@@ -157,7 +161,8 @@ m_rotY(0.0f),
 m_rotZ(0.0f),
 m_init(false),
 m_endThread(false),
-m_readyToInit(false)
+m_readyToInit(false),
+m_glewInit(false)
 {
 	m_sampleInUse=false;
 	m_textureLoaded=false;
@@ -168,37 +173,37 @@ m_readyToInit(false)
 	m_imageSetSampleId=MediaSampleFactory::getTypeId("ImageSampleSet");
 	m_gpuImageSampleId=MediaSampleFactory::getTypeId("GpuImageSample");
 
-	GPUContext::callback(std::bind(&GLWidget::getOpenglThread, this));
+	GPUContext::callback(std::bind(&GLImageView::getOpenglThread, this));
 
-	m_drawCallback.reset(new Limitless::DrawCallback(std::bind(&GLWidget::draw, this)));
+	m_drawCallback.reset(new Limitless::DrawCallback(std::bind(&GLImageView::draw, this)));
 	GPUContext::addDrawCallback(m_drawCallback);
 
 //	doneCurrent();
 //	context->moveToThread(m_openglThread);
 }
 
-GLWidget::~GLWidget()
+GLImageView::~GLImageView()
 {
 	GPUContext::removeDrawCallback(m_drawCallback);
 }
 
-void GLWidget::getOpenglThread()
+void GLImageView::getOpenglThread()
 {
 	m_openglThread=QThread::currentThread();
 }
 
-void GLWidget::attachViewer(GLWidget *glViewer)
+void GLImageView::attachViewer(GLImageView *glViewer)
 {
 	if(glViewer == this)
 		return;
 
 	boost::unique_lock<boost::mutex> lock(m_mutex);
 
-	GLWidgets::iterator iter=std::find(m_glViewers.begin(), m_glViewers.end(), glViewer);
+	GLImageViews::iterator iter=std::find(m_glViewers.begin(), m_glViewers.end(), glViewer);
 
 	if(iter == m_glViewers.end())
 	{
-		Limitless::Log::debug("GLWidget", (boost::format("0x%08x drawThread request suspend")%this).str());
+		Limitless::Log::debug("GLImageView", (boost::format("0x%08x drawThread request suspend")%this).str());
 		//halt thread
 		m_suspendThread=true;
 		while(!m_isSuspended)
@@ -206,28 +211,28 @@ void GLWidget::attachViewer(GLWidget *glViewer)
 			m_event.notify_one();
 			m_threadEvent.wait(lock);
 		}
-		Limitless::Log::debug("GLWidget", (boost::format("0x%08x drawThread request suspend finished")%this).str());
+		Limitless::Log::debug("GLImageView", (boost::format("0x%08x drawThread request suspend finished")%this).str());
 		
 		m_glViewers.push_back(glViewer);
 		glViewer->setMasterWidget(this);
 
 		//run thread
-		Limitless::Log::debug("GLWidget", (boost::format("0x%08x drawThread request unsuspend")%this).str());
+		Limitless::Log::debug("GLImageView", (boost::format("0x%08x drawThread request unsuspend")%this).str());
 		m_suspendThread=false;
 		while(m_isSuspended)
 		{
 			m_event.notify_one();
 			m_threadEvent.wait(lock);
 		}
-		Limitless::Log::debug("GLWidget", (boost::format("0x%08x drawThread request unsuspend finished")%this).str());
+		Limitless::Log::debug("GLImageView", (boost::format("0x%08x drawThread request unsuspend finished")%this).str());
 	}
 }
 
-void GLWidget::removeViewer(GLWidget *glViewer)
+void GLImageView::removeViewer(GLImageView *glViewer)
 {
 	boost::unique_lock<boost::mutex> lock(m_mutex);
 
-	GLWidgets::iterator iter=std::find(m_glViewers.begin(), m_glViewers.end(), glViewer);
+	GLImageViews::iterator iter=std::find(m_glViewers.begin(), m_glViewers.end(), glViewer);
 
 	if(iter != m_glViewers.end())
 	{
@@ -236,7 +241,7 @@ void GLWidget::removeViewer(GLWidget *glViewer)
 	}
 }
 
-void GLWidget::setMasterWidget(GLWidget *master)
+void GLImageView::setMasterWidget(GLImageView *master)
 {
 	if(m_thread.joinable())
 		stopThread();
@@ -253,31 +258,31 @@ void GLWidget::setMasterWidget(GLWidget *master)
 	m_init=false;
 }
 
-void GLWidget::startThread()
+void GLImageView::startThread()
 {
-	Limitless::Log::debug("GLWidget", (boost::format("0x%08x drawThread request start")%this).str());
+	Limitless::Log::debug("GLImageView", (boost::format("0x%08x drawThread request start")%this).str());
 	
 	m_threadStarted=false;
 	m_endThread=false;
 	m_suspendThread=false;
 	
-	m_thread=boost::thread(boost::bind(&GLWidget::drawThread, this));
+	m_thread=boost::thread(boost::bind(&GLImageView::drawThread, this));
 
 	boost::unique_lock<boost::mutex> lock(m_mutex);
 	
 	while(!m_threadStarted)
 		m_threadEvent.wait(lock);
-	Limitless::Log::debug("GLWidget", (boost::format("0x%08x drawThread request start finished")%this).str());
+	Limitless::Log::debug("GLImageView", (boost::format("0x%08x drawThread request start finished")%this).str());
 }
 
-QThread *GLWidget::getQThread()
+QThread *GLImageView::getQThread()
 {
 	return m_processQThread;
 }
 
-void GLWidget::stopThread()
+void GLImageView::stopThread()
 {
-	Limitless::Log::debug("GLWidget", (boost::format("0x%08x drawThread request stop")%this).str());
+	Limitless::Log::debug("GLImageView", (boost::format("0x%08x drawThread request stop")%this).str());
 
 	{
 		boost::unique_lock<boost::mutex> lock(m_mutex);
@@ -289,10 +294,10 @@ void GLWidget::stopThread()
 //	notify();
 	m_thread.join();
 
-	Limitless::Log::debug("GLWidget", (boost::format("0x%08x drawThread request finished")%this).str());
+	Limitless::Log::debug("GLImageView", (boost::format("0x%08x drawThread request finished")%this).str());
 }
 
-void GLWidget::notify()
+void GLImageView::notify()
 {
 //	if(m_masterWidget != NULL)
 //		m_masterWidget->notify();
@@ -301,14 +306,14 @@ void GLWidget::notify()
 	GPUContext::requestRedraw();
 }
 
-boost::mutex &GLWidget::getMutex()
+boost::mutex &GLImageView::getMutex()
 {
 	if(m_masterWidget != NULL)
 		return m_masterWidget->m_mutex;
 	return m_mutex;
 }
 
-void GLWidget::getMainGLHandle()
+void GLImageView::getMainGLHandle()
 {
 //	QOpenGLContext mainContext;
 //	QVariant glContextVariant;
@@ -352,7 +357,7 @@ void GLWidget::getMainGLHandle()
 //	glContext->moveToThread(m_openglThread);
 }
 
-bool GLWidget::initialize()
+bool GLImageView::initialize()
 {
 	getMainGLHandle();
 //	GLenum glewError;
@@ -377,7 +382,7 @@ bool GLWidget::initialize()
 //
 ////		GPUContext::makeOpenGLCurrent();
 //
-//		GPUContext::callback(std::bind(&GLWidget::getMainGLHandle, this));
+//		GPUContext::callback(std::bind(&GLImageView::getMainGLHandle, this));
 //		
 ////		const QGLContext *glCurrentContext=QGLContext::currentContext();
 //
@@ -392,6 +397,11 @@ bool GLWidget::initialize()
 
 	makeCurrent();
 
+//    if(!m_glewInit)
+//    {
+//        glewInit();
+//        m_glewInit=true;
+//    }
 	initOpenGlFunctions();
 
 	setAutoBufferSwap(false);
@@ -470,7 +480,7 @@ bool GLWidget::initialize()
 	return true;
 }
 
-void GLWidget::initOpenGlFunctions()
+void GLImageView::initOpenGlFunctions()
 {
 	getOpenGlExtension("glCompileShader", _glCompileShader);
 	getOpenGlExtension("glCreateShader", _glCreateShader);
@@ -495,26 +505,26 @@ void GLWidget::initOpenGlFunctions()
 	getOpenGlExtension("glDisableVertexAttribArray", _glDisableVertexAttribArray);
 }
 
-void GLWidget::glInit()
+void GLImageView::glInit()
 {
-//	QGLWidget::glInit();
+//	QGLImageView::glInit();
 }
 
-void GLWidget::glDraw()
+void GLImageView::glDraw()
 {
-//	QGLWidget::glDraw();
+//	QGLImageView::glDraw();
 //	m_event.notify_one();
 	notify();
 }
 
-void GLWidget::initializeGL()
+void GLImageView::initializeGL()
 {
 //	initialize();
 //	m_event.notify_one();
 //	m_readyToInit=true;
 }
 
-void GLWidget::resizeGL(int width, int height)
+void GLImageView::resizeGL(int width, int height)
 {
 //	glViewport(0, 0, width, height);
 //	glMatrixMode(GL_PROJECTION);
@@ -532,13 +542,13 @@ void GLWidget::resizeGL(int width, int height)
 //	m_event.notify_one();
 }
 
-void GLWidget::paintGL()
+void GLImageView::paintGL()
 {
 //	drawImage(m_images);
 //	m_event.notify_one();
 }
 
-void GLWidget::fitToScreen()
+void GLImageView::fitToScreen()
 {
 	float transX, transY;
 
@@ -554,13 +564,13 @@ void GLWidget::fitToScreen()
 		m_transZ=transY;
 }
 
-void GLWidget::setDisplayMode(DisplayMode mode)
+void GLImageView::setDisplayMode(DisplayMode mode)
 {
 	m_displayMode=mode;
 	m_displayModeChanged=true;
 }
 
-void GLWidget::displaySample(SharedMediaSample sample)
+void GLImageView::displaySample(SharedMediaSample sample)
 {
 //	boost::unique_lock<boost::mutex> lock(getMutex());
 	if(!m_sampleInUse)
@@ -571,7 +581,7 @@ void GLWidget::displaySample(SharedMediaSample sample)
 	}
 }
 
-bool GLWidget::updateSample()
+bool GLImageView::updateSample()
 {
 	bool update=false;
 
@@ -593,7 +603,7 @@ bool GLWidget::updateSample()
 	return update;
 }
 
-void GLWidget::setCurrentSample(SharedMediaSample sample)
+void GLImageView::setCurrentSample(SharedMediaSample sample)
 {
 //	std::vector<QImage> images;
 	bool initImages=true;
@@ -661,14 +671,14 @@ void GLWidget::setCurrentSample(SharedMediaSample sample)
 	
 }
 
-void GLWidget::resizeEvent(QResizeEvent *evt)
+void GLImageView::resizeEvent(QResizeEvent *evt)
 {
 	m_resize=true;
 
 	notify();
 }
 
-void GLWidget::closeEvent(QCloseEvent *evt)
+void GLImageView::closeEvent(QCloseEvent *evt)
 {
 	if(m_masterWidget == NULL)
 	{
@@ -678,7 +688,7 @@ void GLWidget::closeEvent(QCloseEvent *evt)
 	QGLWidget::closeEvent(evt);
 }
 
-bool GLWidget::event(QEvent *e)
+bool GLImageView::event(QEvent *e)
 {
 	if(e->type() == QEvent::Show)
 		notify();
@@ -701,9 +711,9 @@ bool GLWidget::event(QEvent *e)
 }
 
 
-void GLWidget::drawThread()
+void GLImageView::drawThread()
 {
-	Limitless::Log::debug("GLWidget", (boost::format("0x%08x drawThread started")%this).str());
+	Limitless::Log::debug("GLImageView", (boost::format("0x%08x drawThread started")%this).str());
 
 	m_processQThread=QThread::currentThread();
 
@@ -745,7 +755,7 @@ void GLWidget::drawThread()
 
 		if(m_suspendThread)
 		{
-			Limitless::Log::debug("GLWidget", (boost::format("0x%08x drawThread suspended")%this).str());
+			Limitless::Log::debug("GLImageView", (boost::format("0x%08x drawThread suspended")%this).str());
 
 			while(m_suspendThread)
 			{
@@ -753,7 +763,7 @@ void GLWidget::drawThread()
 				m_threadEvent.notify_all();
 				m_event.wait(lock);
 			}
-			Limitless::Log::debug("GLWidget", (boost::format("0x%08x drawThread unsuspended")%this).str());
+			Limitless::Log::debug("GLImageView", (boost::format("0x%08x drawThread unsuspended")%this).str());
 			m_isSuspended=false;
 			m_threadEvent.notify_all();
 		}
@@ -764,7 +774,7 @@ void GLWidget::drawThread()
 //		Limitless::Log::write((boost::format("0x%08x drawThread draw")%this).str());
 		if(!m_glViewers.empty())
 		{
-			for(GLWidget *viewer:m_glViewers)
+			for(GLImageView *viewer:m_glViewers)
 			{
 //				if(viewer->draw())
 //					swap=true;
@@ -781,19 +791,13 @@ void GLWidget::drawThread()
 //		Limitless::Log::write((boost::format("0x%08x drawThread draw finished")%this).str());
 	}
 
-	Limitless::Log::debug("GLWidget", (boost::format("0x%08x drawThread exit")%this).str());
+	Limitless::Log::debug("GLImageView", (boost::format("0x%08x drawThread exit")%this).str());
 }
 
-//bool GLWidget::draw(bool useCurrent)
-void GLWidget::draw()
+//bool GLImageView::draw(bool useCurrent)
+void GLImageView::draw()
 {
     //glew init needs to be called for the dll otherwise functions will be null
-    if(!m_glewInit)
-    {
-        glewInit();
-        m_glewInit=true;
-    }
-
 	if(!isVisible())
 		return;// false;
 
@@ -838,7 +842,7 @@ void GLWidget::draw()
 		{
 			if(updateTexture)
 			{
-				glActiveTexture(GL_TEXTURE0);
+				_glActiveTexture(GL_TEXTURE0);
 				assert(checkErrorGL());
 
 				textureEnbled=true;
@@ -896,23 +900,23 @@ void GLWidget::draw()
 
 			if(m_textureLoaded)
 			{
-				glUseProgram(m_programID);
+				_glUseProgram(m_programID);
 				assert(checkErrorGL());
 
 				if(!textureEnbled)
 				{
-					glActiveTexture(GL_TEXTURE0);
+					_glActiveTexture(GL_TEXTURE0);
 					assert(checkErrorGL());
 				}
 
-				glUniform1i(m_textureSamplerID, 0);
+				_glUniform1i(m_textureSamplerID, 0);
 				glBindTexture(m_textureType, m_currentTexture);
 
 				for(size_t i=0; i<m_vertexBuffers.size(); ++i)
 				{
-					glEnableVertexAttribArray(0);
-					glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffers[i]);
-					glVertexAttribPointer(
+					_glEnableVertexAttribArray(0);
+					_glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffers[i]);
+					_glVertexAttribPointer(
 						0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
 						2,                  // size
 						GL_FLOAT,           // type
@@ -922,10 +926,10 @@ void GLWidget::draw()
 						);
 					assert(checkErrorGL());
 					
-					glEnableVertexAttribArray(1);
-					glBindBuffer(GL_ARRAY_BUFFER, m_texCoordBuffer);
+					_glEnableVertexAttribArray(1);
+					_glBindBuffer(GL_ARRAY_BUFFER, m_texCoordBuffer);
 					assert(checkErrorGL());
-					glVertexAttribPointer(
+					_glVertexAttribPointer(
 						1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
 						2,                                // size : U+V => 2
 						GL_FLOAT,                         // type
@@ -936,8 +940,8 @@ void GLWidget::draw()
 					glDrawArrays(GL_TRIANGLES, 0, 6); // 3 indices starting at 0 -> 1 triangle
 					assert(checkErrorGL());
 
-					glDisableVertexAttribArray(0);
-					glDisableVertexAttribArray(1);
+					_glDisableVertexAttribArray(0);
+					_glDisableVertexAttribArray(1);
 				}
 			}
 		}
@@ -952,7 +956,7 @@ void GLWidget::draw()
 //	return drawTexture;
 }
 
-void GLWidget::resizeMedia()
+void GLImageView::resizeMedia()
 {
 //	makeCurrent();
 	GLenum errCode=glGetError();//clear errors
@@ -972,7 +976,7 @@ void GLWidget::resizeMedia()
 	calculateMediaPos();
 }
 
-void GLWidget::calculateMediaPos()
+void GLImageView::calculateMediaPos()
 {
 	int mediaWidth;
 	int mediaHeight;
@@ -1091,8 +1095,8 @@ void GLWidget::calculateMediaPos()
 				vertexBuffer[10]=xPos;
 				vertexBuffer[11]=yPos-quadHeight;
 
-				glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffers[count]);
-				glBufferData(GL_ARRAY_BUFFER, vertexBuffer.size()*sizeof(GLfloat), vertexBuffer.data(), GL_STATIC_DRAW);
+				_glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffers[count]);
+				_glBufferData(GL_ARRAY_BUFFER, vertexBuffer.size()*sizeof(GLfloat), vertexBuffer.data(), GL_STATIC_DRAW);
 
 //				m_vertexBufferData[pos++]=xPos;
 //				m_vertexBufferData[pos++]=yPos;
@@ -1134,7 +1138,7 @@ void GLWidget::calculateMediaPos()
 	}
 }
 
-void GLWidget::setupleMultipleImages(const std::vector<QImage> &images)
+void GLImageView::setupleMultipleImages(const std::vector<QImage> &images)
 {
 	int imagesX=sqrt((float)images.size());
 	int imagesY;
@@ -1181,12 +1185,12 @@ void GLWidget::setupleMultipleImages(const std::vector<QImage> &images)
 	m_displayModeChanged=false;
 }
 
-void GLWidget::setupCylindrical()
+void GLImageView::setupCylindrical()
 {
 	m_displayModeChanged=false;
 }
 
-void GLWidget::drawImage(std::vector<QImage> &images)
+void GLImageView::drawImage(std::vector<QImage> &images)
 {
 //	makeCurrent();
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -1228,7 +1232,7 @@ void GLWidget::drawImage(std::vector<QImage> &images)
 //	doneCurrent();
 }
 
-void GLWidget::drawSingleImage(QImage &image)
+void GLImageView::drawSingleImage(QImage &image)
 {
 	if((image.width() <= 0) || (image.height() <= 0))
 		return;
@@ -1288,7 +1292,7 @@ void GLWidget::drawSingleImage(QImage &image)
 	checkErrorGL();
 }
 
-void GLWidget::allocateTextures(int textureCount)
+void GLImageView::allocateTextures(int textureCount)
 {
 	if(m_textures.size() < textureCount)
 	{
@@ -1333,7 +1337,7 @@ void GLWidget::allocateTextures(int textureCount)
 	checkErrorGL();
 }
 
-void GLWidget::mousePressEvent(QMouseEvent* event)
+void GLImageView::mousePressEvent(QMouseEvent* event)
 {
 	Qt::MouseButton button=event->button();
 
@@ -1343,12 +1347,12 @@ void GLWidget::mousePressEvent(QMouseEvent* event)
 		m_rightClick=event->globalPos();
 }
 
-void GLWidget::mouseReleaseEvent(QMouseEvent* event)
+void GLImageView::mouseReleaseEvent(QMouseEvent* event)
 {
 	this->setCursor(QCursor(Qt::OpenHandCursor));
 }
 
-void GLWidget::mouseMoveEvent(QMouseEvent* event)
+void GLImageView::mouseMoveEvent(QMouseEvent* event)
 {
 	Qt::MouseButtons buttons=event->buttons();
 
@@ -1374,7 +1378,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent* event)
 	}
 }
 
-bool GLWidget::checkErrorGL()
+bool GLImageView::checkErrorGL()
 {
 	GLenum errCode;
 	const GLubyte *errString;
@@ -1391,7 +1395,7 @@ bool GLWidget::checkErrorGL()
 	return true;
 }
 
-GLuint GLWidget::LoadShaderFiles(const char * vertex_file_path, const char * fragment_file_path)
+GLuint GLImageView::LoadShaderFiles(const char * vertex_file_path, const char * fragment_file_path)
 {
 
 	// Read the Vertex Shader code from the file
@@ -1426,7 +1430,7 @@ GLuint GLWidget::LoadShaderFiles(const char * vertex_file_path, const char * fra
 	return LoadShaders(VertexShaderCode, FragmentShaderCode);
 }
 
-GLuint GLWidget::LoadShaders(std::string VertexShaderCode, std::string FragmentShaderCode)
+GLuint GLImageView::LoadShaders(std::string VertexShaderCode, std::string FragmentShaderCode)
 {
 	GLint Result=GL_FALSE;
 	int InfoLogLength;
@@ -1499,3 +1503,5 @@ GLuint GLWidget::LoadShaders(std::string VertexShaderCode, std::string FragmentS
 
 	return ProgramID;
 }
+
+}//namespace Limitless

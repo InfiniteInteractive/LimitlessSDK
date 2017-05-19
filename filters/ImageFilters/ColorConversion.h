@@ -7,6 +7,7 @@
 #include "Media/MediaPluginFactory.h"
 #include "Media/IMediaFilter.h"
 #include "Media/ImageSample.h"
+#include "Media/GPUBufferSample.h"
 #include "Media/GPUImageSample.h"
 
 #include <unordered_map>
@@ -23,7 +24,9 @@ public:
 		RGB12,
 		YUV4,
 		YUV422,
-		YUV420
+		YUV420,
+        YUV422P,
+        YUV420P
 	};
 	typedef std::unordered_map<Type, std::string> ColorFormatMap;
 
@@ -33,6 +36,7 @@ public:
 private:
 	static ColorFormatMap &ColorFormat::getFormatMap();
 };
+
 
 class ColorConversion:public Limitless::MediaAutoRegister<ColorConversion, Limitless::IMediaFilter>
 {
@@ -70,18 +74,25 @@ private:
 	std::string getKernelName(ColorFormat::Type from, ColorFormat::Type to);
 	KernelNameMap m_kernelMap;
 
+    bool m_passThrough;
 	ColorFormat::Type m_fromFormat;
 	ColorFormat::Type m_toFormat;
 
 	size_t m_imageSampleId;
 	size_t m_imageSampleSetId;
+    size_t m_gpuBufferSampleId;
 	size_t m_gpuImageSampleId;
 	size_t m_gpuImageSampleSetId;
+
+    Limitless::SharedMediaPad m_sourcePad;
 
 	bool m_openCLInitialized;
 	cl::Device m_openCLDevice;
 	cl::Context m_openCLContext;
+    bool m_hasCommandQueue;
 	cl::CommandQueue m_openCLComandQueue;
+
+    std::vector<Limitless::GpuBufferSample> m_gpuCopyBuffers;
 
 	size_t m_kernelWorkGroupSize;
 	size_t m_blockSizeX;

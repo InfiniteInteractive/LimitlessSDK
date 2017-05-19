@@ -9,8 +9,8 @@ project(Base)
 
 #add_package("rapidjson" VERSION "v1.0.2" )
 
-hunter_add_package(Boost COMPONENTS system filesystem)
-find_package(Boost CONFIG REQUIRED system filesystem)
+#hunter_add_package(Boost COMPONENTS system filesystem)
+#find_package(Boost CONFIG REQUIRED system filesystem)
 
 hunter_add_package(rapidjson)
 find_package(rapidjson CONFIG REQUIRED)

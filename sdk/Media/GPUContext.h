@@ -11,7 +11,11 @@
 #include <windows.h>
 #endif //_WINDOWS
 
+#ifdef Media_EXPORTS
 #include <GL/glew.h>
+#else
+#include <gl/gl.h>
+#endif
 #include "CL/cl.hpp"
 
 #include "Media/OpenClThread.h"
@@ -34,6 +38,7 @@ struct GpuTask
 	{
 		Callback,
 		InitOpenCl,
+        CreateBuffer,
 		CreateTexture,
 		UploadTexture,
 		CreateClImage,
@@ -65,21 +70,34 @@ struct InitOpenClTask:GpuWaitTask
 	InitOpenClTask():GpuWaitTask(GpuTask::InitOpenCl){}
 };
 
-struct CreateTextureTask:GpuWaitTask
+struct CreateBufferTask:GpuWaitTask
 {
-	CreateTextureTask():GpuWaitTask(GpuTask::CreateTexture){}
+    CreateBufferTask():GpuWaitTask(GpuTask::CreateBuffer){}
 
 //input
-	bool alloc;
-	GLenum target;
-	GLint internalFormat;
-	GLsizei width;
-	GLsizei height;
-	GLenum format;
-	GLenum type;
+    bool alloc;
+	GLsizei size;
 
 //output
-	GLuint texture;
+	GLuint pbo;
+    GLuint texture;
+};
+
+struct CreateTextureTask:GpuWaitTask
+{
+    CreateTextureTask():GpuWaitTask(GpuTask::CreateTexture) {}
+
+    //input
+    bool alloc;
+    GLenum target;
+    GLint internalFormat;
+    GLsizei width;
+    GLsizei height;
+    GLenum format;
+    GLenum type;
+
+    //output
+    GLuint texture;
 };
 
 struct UploadTextureTask:GpuWaitTask
@@ -138,8 +156,8 @@ public:
 
 	static void setOpenCLPlatform(cl::Platform platform, cl::Device device);
 	static cl::Context openCLContext();
-	static cl::CommandQueue openCLCommandQueue();
-	static cl::Device openCLDevice();
+	static cl::CommandQueue &openCLCommandQueue();
+	static cl::Device &openCLDevice();
 
 	static void callback(std::function<void()> localCallback);
 	static void initOpenCL(DisplayHandle hdc);
@@ -147,6 +165,8 @@ public:
 	static bool initOpenGL(DisplayHandle hdc);
 	static void close();
 
+    static std::pair<GLuint, GLuint> createBuffer();
+    static std::pair<GLuint, GLuint> createBuffer(GLsizei size);
 	static GLuint createTexture();
 	static GLuint createTexture(GLenum target, GLint internalFormat, GLsizei width, GLsizei height, GLenum format, GLenum type);
 	static void uploadTexture(GLuint texture, GLenum target, GLint internalFormat, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *data);
@@ -173,6 +193,7 @@ private:
 	static void threadCallback(std::unique_lock<std::mutex> &lock, GpuTask *gpuTask);
 	static void internalInitOpenCL();
 	static void threadInitOpenCl(std::unique_lock<std::mutex> &lock, GpuTask *gpuTask);
+    static void threadCreateBuffer(std::unique_lock<std::mutex> &lock, GpuTask *gpuTask);
 	static void threadCreateTexture(std::unique_lock<std::mutex> &lock, GpuTask *gpuTask);
 	static void threadUploadTexture(std::unique_lock<std::mutex> &lock, GpuTask *gpuTask);
 	static void threadCreateClImage(std::unique_lock<std::mutex> &lock, GpuTask *gpuTask);
@@ -181,6 +202,8 @@ private:
 
 	static bool m_openGLInit;
 	static DisplayHandle m_displayHandle;
+
+    static std::string m_openglVendor;
 
 #ifdef WIN32
 	static HWND m_nativeWindow;

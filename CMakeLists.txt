@@ -7,12 +7,13 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMakeModules)
 message(STATUS "module path: ${CMAKE_MODULE_PATH}")
 
 #load Hunter packager
-include(HunterPackage)
+#include(HunterPackage)
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/Hunter/HunterGate.cmake)
 
 HunterGate(
-	URL "https://github.com/ruslo/hunter/archive/v0.16.30.tar.gz"
-    SHA1 "c5b159b48a3a842697f08fe2a72464adfd78a55d"
-	LOCAL
+    URL "https://github.com/ruslo/hunter/archive/v0.18.43.tar.gz"
+    SHA1 "d2c8c42cd07f7cefe18fd9a9b9c13114b1a15a27"
+    LOCAL
 )
 
 project(LimitlessSDK)
@@ -22,7 +23,8 @@ set(CMAKE_DEBUG_POSTFIX "")
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5Gui REQUIRED)
-set(QT5_PULGIN_DIR $ENV{QTDIR}/plugins)
+set(QT5_BIN_DIR ${QT_ROOT_DIR}/bin)
+set(QT5_PULGIN_DIR ${QT_ROOT_DIR}/plugins)
 
 #find_package(Qt4 REQUIRED)
 #find_package(OpenGl REQUIRED)
@@ -30,6 +32,8 @@ set(QT5_PULGIN_DIR $ENV{QTDIR}/plugins)
 #find_package(GLEW REQUIRED)
 #message(STATUS "Glew include dir:${GLEW_INCLUDE_DIRS}")
 #message(STATUS "Glew libs:${GLEW_LIBRARIES}")
+hunter_add_package(glew)
+find_package(glew CONFIG REQUIRED)
 
 #check for 64bit build
 if( "${CMAKE_SIZEOF_VOID_P}" EQUAL "8" )
@@ -63,8 +67,8 @@ set(LIBRARIES_PATH ${CMAKE_SOURCE_DIR}/libraries/)
 add_definitions(-DBOOST_ALL_DYN_LINK)
 #
 #set(BOOST_ROOT $ENV{BOOST_DIR})
-hunter_add_package(Boost COMPONENTS thread regex filesystem program_options system)
-find_package(Boost REQUIRED COMPONENTS thread regex filesystem program_options system)
+hunter_add_package(Boost COMPONENTS thread regex filesystem program_options system chrono date_time)
+find_package(Boost REQUIRED COMPONENTS thread regex filesystem program_options system chrono date_time)
 
 message(status "******Boost")
 message(status "*Include Dir: ${Boost_INCLUDE_DIR}")
@@ -76,6 +80,11 @@ message(status "*Libraries: ${Boost_LIBRARIES}")
 #message(status "******OpenCl")
 #message(status "*Include Dir: ${OPENCL_INCLUDE_DIRS}")
 #message(status "*Libraries Dir: ${OPENCL_LIBRARIES}")
+hunter_add_package(OpenCL)
+find_package(OpenCL CONFIG REQUIRED)
+
+hunter_add_package(OpenCL-cpp)
+find_package(OpenCL-cpp CONFIG REQUIRED)
 
 #set(GLM_ROOT $ENV{GLM_DIR})
 #find_package(GLM)
@@ -84,6 +93,10 @@ message(status "*Libraries: ${Boost_LIBRARIES}")
 
 #rapidjson
 #find_package(rapidjson)
+
+#forge
+set(FORGE_DEBUG_DIR ${FORGE_ROOT_DIR}/_buildx64/src/backend/opengl/Debug)
+set(FORGE_RELEASE_DIR ${FORGE_ROOT_DIR}/_buildx64/src/backend/opengl/Release)
 
 set(TOPLEVEL_BINARY_DIR ${PROJECT_BINARY_DIR})
 
