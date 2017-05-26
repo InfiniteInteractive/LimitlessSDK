@@ -104,11 +104,16 @@ class AttributeTemplate:public Attribute
 {
 public:
 	AttributeTemplate(const AttributeTemplate<classType> &attribute):Attribute(attribute.m_type, attribute.m_name), m_parent(nullptr) { m_value=attribute.m_value; };
-	AttributeTemplate(const std::string name):Attribute(Type::UNKNOWN, name), m_parent(nullptr){assert(false);};
+    AttributeTemplate(IChangeNotify *parent, const AttributeTemplate<classType> &attribute):Attribute(attribute.m_type, attribute.m_name), m_parent(parent) { m_value=attribute.m_value; };
+
+///////////////////////////////////////////////////////////////////////////////
+//if you are here it is because Attribute does not know how to handle your type
+    AttributeTemplate(const std::string name):Attribute(Type::UNKNOWN, name), m_parent(nullptr) { std::static_assert(false);  assert(false); };
 	AttributeTemplate(const std::string name, classType value):Attribute(Type::UNKNOWN, name), m_parent(nullptr), m_value(value) { assert(false); };
 	AttributeTemplate(IChangeNotify *parent, const std::string name):Attribute(Type::UNKNOWN, name), m_parent(parent){assert(false);};
 	AttributeTemplate(IChangeNotify *parent, const std::string name, classType value):Attribute(Type::UNKNOWN, name), m_parent(parent), m_value(value){assert(false);};
-	AttributeTemplate(IChangeNotify *parent, const AttributeTemplate<classType> &attribute):Attribute(attribute.m_type, attribute.m_name), m_parent(parent){m_value=attribute.m_value;};
+///////////////////////////////////////////////////////////////////////////////
+
 	virtual ~AttributeTemplate(){};
 
 	classType &value(){return m_value;}

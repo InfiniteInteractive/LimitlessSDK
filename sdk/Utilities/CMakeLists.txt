@@ -5,14 +5,11 @@
 
 project(Utilities)
 
-include(AddPackage)
-
-#add_package("glm" VERSION "0.9.7.6")
 hunter_add_package(glm)
 find_package(glm CONFIG REQUIRED)
 
-hunter_add_package(Boost COMPONENTS system regex filesystem thread)
-find_package(Boost CONFIG REQUIRED system regex filesystem thread)
+#hunter_add_package(Boost COMPONENTS system regex filesystem thread)
+#find_package(Boost CONFIG REQUIRED system regex filesystem thread)
 
 #remove min and max macro declares from windows builds, causes issues with std::min/max
 add_definitions(-DNOMINMAX)

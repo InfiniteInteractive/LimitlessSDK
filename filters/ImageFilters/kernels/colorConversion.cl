@@ -1,35 +1,224 @@
 __constant sampler_t nearestSampler=CLK_NORMALIZED_COORDS_FALSE|CLK_ADDRESS_CLAMP_TO_EDGE|CLK_FILTER_NEAREST;
 
-kernel void yuv422torgb(global uchar *src, uint srcWidth, uint srcHeight, write_only image2d_t dst, uint dstWidth, uint dstHeight)
+kernel void yuv422torgb(global uchar4 *src, uint srcWidth, uint srcHeight, write_only image2d_t dst, uint dstWidth, uint dstHeight)
 {
-//	int2 coord = (int2)(get_global_id(0), get_global_id(1));
-	uint gx = get_global_id(0);
-	uint gy = get_global_id(1);
+    //	int2 coord = (int2)(get_global_id(0), get_global_id(1));
+    uint gx=get_global_id(0);
+    uint gy=get_global_id(1);
 
-	uint x=gx*2;
-	uint y=gy;
+    uint srcX=gx;
+    uint dstX=gx*2;
+    uint y=gy;
 
-	if((x < dstWidth) && (y < dstHeight))
-	{
-		float4 p;
+//	write_imageui(dst, (int2) { dstX, y }, (uint4){255, 0, 0, 255});
+//    write_imageui(dst, (int2) { dstX+1, y }, (uint4) { 255, 0, 0, 255 });
+//	return;
 
-		float Y = 1.1643 * (src[x + y*srcWidth] / 255.0f - 0.0625);
-		float Cr = src[gx+(y*(srcWidth/2))+srcWidth*srcHeight] / 255.0f - 0.5f;
-		float Cb = src[gx+(y*(srcWidth/2))+((srcWidth/2)*srcHeight)+(srcWidth)*(srcHeight/2)] / 255.0f - 0.5f;
+    if((dstX < dstWidth) && (y < dstHeight))
+    {
+        uchar4 values=src[y*(srcWidth/2)+srcX];
 
-		p.s0 = Y + 1.5958 * Cb;
-		p.s1 = Y - 0.39173*Cr-0.81290*Cb;
-		p.s2 = Y + 2.017*Cr;
-		p.s3 = 1.0f;
-		write_imagef(dst, (int2){ x, y }, p);
+//        write_imageui(dst, (int2) { dstX, y }, (uint4){ values[1], values[1], values[1], 255});
+//        write_imageui(dst, (int2) { dstX+1, y }, (uint4) { values[3], values[3], values[3], 255 });
+//		return;
 
-		Y = 1.1643 * (src[x + 1 + y*srcWidth] / 255.0f - 0.0625);
-		p.s0 = Y + 1.5958 * Cb;
-		p.s1 = Y - 0.39173*Cr-0.81290*Cb;
-		p.s2 = Y + 2.017*Cr;
-		p.s3 = 1.0f;
-		write_imagef(dst, (int2){ x+1, y }, p);
-	}
+        float Cr=values.z/255.0f-0.5f;
+        float Cb=values.x/255.0f-0.5f;
+        float4 p;
+        float Y;
+
+        Y=1.1643*(values.y/255.0f-0.0625);
+
+        p.s0=Y+2.017*Cr;
+        p.s1=Y-0.39173*Cr-0.81290*Cb;
+        p.s2=Y+1.5958*Cb;
+        p.s3=1.0f;
+        p*=255.0f;
+
+        write_imageui(dst, (int2) { dstX, y }, convert_uint4(p));
+
+        Y=1.1643*(values.w/255.0f-0.0625);
+
+        p.s0=Y+2.017*Cr;
+        p.s1=Y-0.39173*Cr-0.81290*Cb;
+        p.s2=Y+1.5958*Cb;
+        p.s3=1.0f;
+        p*=255.0f;
+
+        write_imageui(dst, (int2) { dstX+1, y }, convert_uint4(p));
+    }
+}
+
+kernel void yuv422ptorgb(global uchar *src, uint srcWidth, uint srcHeight, write_only image2d_t dst, uint dstWidth, uint dstHeight)
+{
+    //	int2 coord = (int2)(get_global_id(0), get_global_id(1));
+    uint gx=get_global_id(0);
+    uint gy=get_global_id(1);
+
+    uint x=gx*4;
+    uint y=gy;
+
+    if((x < dstWidth)&&(y < dstHeight))
+    {
+    	float4 p;
+    
+    	float Y = 1.1643 * (src[x + y*srcWidth] / 255.0f - 0.0625);
+    	float Cr = src[gx+(y*(srcWidth/2))+srcWidth*srcHeight] / 255.0f - 0.5f;
+    	float Cb = src[gx+(y*(srcWidth/2))+((srcWidth/2)*srcHeight)+(srcWidth)*(srcHeight/2)] / 255.0f - 0.5f;
+    
+    	p.s0 = Y + 1.5958 * Cb;
+    	p.s1 = Y - 0.39173*Cr-0.81290*Cb;
+    	p.s2 = Y + 2.017*Cr;
+    	p.s3 = 1.0f;
+//    	write_imagef(dst, (int2){ x, y }, p);
+        write_imageui(dst, (int2) { x, y }, convert_uint4(p));
+    
+    	Y = 1.1643 * (src[x + 1 + y*srcWidth] / 255.0f - 0.0625);
+    	p.s0 = Y + 1.5958 * Cb;
+    	p.s1 = Y - 0.39173*Cr-0.81290*Cb;
+    	p.s2 = Y + 2.017*Cr;
+    	p.s3 = 1.0f;
+//    	write_imagef(dst, (int2){ x+1, y }, p);
+        write_imageui(dst, (int2) { x+1, y }, convert_uint4(p));
+    }
+    //    write_imageui(dst, (int2) { x, y }, (uint4){255, 0, 0, 255});
+    //    write_imageui(dst, (int2) { x+1, y }, (uint4) { 255, 0, 0, 255 });
+}
+
+__kernel void yuv420ptorgb(global uchar *src, uint srcWidth, uint srcHeight, __write_only image2d_t dst, uint dstWidth, uint dstHeight)
+{
+    uint gx=get_global_id(0);
+    uint gy=get_global_id(1);
+
+    uint x=gx*2;
+    uint y=gy*2;
+
+    if((x<dstWidth)&&(y<dstHeight))
+    {
+        float4 p;
+        uint pos=srcWidth*srcHeight;
+        uint halfWidth=(srcWidth/2);
+        uint halfHeight=(srcHeight/2);
+        float4 Y;
+        
+        Y.x=src[srcWidth*y+x];
+        Y.y=src[srcWidth*y+x+1];
+        Y.z=src[srcWidth*(y+1)+x];
+        Y.w=src[srcWidth*(y+1)+x+1];
+
+        Y=1.1643f*(Y/255.0f-0.0625f);
+        float Cr=((float)src[pos+(gy*halfWidth)+gx])/255.0f-0.5f;
+        pos+=halfWidth*halfHeight;
+        float Cb=((float)src[pos+(gy*halfWidth)+gx])/255.0f-0.5f;
+
+        p.s0=Y.x+1.5958f * Cb;
+        p.s1=Y.x-0.39173f*Cr-0.81290f*Cb;
+        p.s2=Y.x+2.017f*Cr;
+        p.s3=1.0f;
+        p*=255.0f;
+
+        write_imageui(dst, (int2) { x, y }, convert_uint4(p));
+
+        p.s0=Y.y+1.5958f * Cb;
+        p.s1=Y.y-0.39173f*Cr-0.81290f*Cb;
+        p.s2=Y.y+2.017*Cr;
+        p.s3=1.0f;
+        p*=255.0f;
+
+        write_imageui(dst, (int2) { x+1, y }, convert_uint4(p));
+
+        p.s0=Y.z+1.5958f * Cb;
+        p.s1=Y.z-0.39173f*Cr-0.81290f*Cb;
+        p.s2=Y.z+2.017f*Cr;
+        p.s3=1.0f;
+        p*=255.0f;
+
+        write_imageui(dst, (int2) { x, y+1 }, convert_uint4(p));
+
+        p.s0=Y.w+1.5958f * Cb;
+        p.s1=Y.w-0.39173f*Cr-0.81290f*Cb;
+        p.s2=Y.w+2.017f*Cr;
+        p.s3=1.0f;
+        p*=255.0f;
+
+        write_imageui(dst, (int2) { x+1, y+1 }, convert_uint4(p));
+    }
+
+//    uchar Y1=src[srcWidth*y+x];
+//    uchar Y2=src[srcWidth*y+x+1];
+//    uchar Y3=src[srcWidth*(y+1)+x];
+//    uchar Y4=src[srcWidth*(y+1)+x+1];
+//
+//    write_imageui(dst, (int2) { x, y }, (uint4) { Y1, Y1, Y1, 255 });
+//    write_imageui(dst, (int2) { x+1, y }, (uint4) { Y2, Y2, Y2, 255 });
+//    write_imageui(dst, (int2) { x, y+1 }, (uint4) { Y3, Y3, Y3, 255 });
+//    write_imageui(dst, (int2) { x+1, y+1 }, (uint4) { Y4, Y4, Y4, 255 });
+}
+
+__kernel void yuvj420ptorgb(global uchar *src, uint srcWidth, uint srcHeight, __write_only image2d_t dst, uint dstWidth, uint dstHeight)
+{
+    uint gx=get_global_id(0);
+    uint gy=get_global_id(1);
+
+    uint x=gx*2;
+    uint y=gy*2;
+
+    if((x<dstWidth)&&(y<dstHeight))
+    {
+//        write_imageui(dst, (int2) { x, y }, (uint4) { 255, 0, 0, 255 });
+//        write_imageui(dst, (int2) { x+1, y }, (uint4) { 255, 0, 0, 255 });
+//        write_imageui(dst, (int2) { x, y+1 }, (uint4) { 255, 0, 0, 255 });
+//        write_imageui(dst, (int2) { x+1, y+1 }, (uint4) { 255, 0, 0, 255 });
+//        return;
+
+        float4 p;
+        uint pos=srcWidth*srcHeight;
+        uint halfWidth=(srcWidth/2);
+        uint halfHeight=(srcHeight/2);
+        float4 Y;
+
+        Y.x=src[srcWidth*y+x];
+        Y.y=src[srcWidth*y+x+1];
+        Y.z=src[srcWidth*(y+1)+x];
+        Y.w=src[srcWidth*(y+1)+x+1];
+
+        Y=1.1643f*(Y/255.0f-0.0625f);
+        float Cr=((float)src[pos+(gy*halfWidth)+gx])/255.0f-0.5f;
+        pos+=halfWidth*halfHeight;
+        float Cb=((float)src[pos+(gy*halfWidth)+gx])/255.0f-0.5f;
+
+        p.s0=Y.x+1.5958f * Cb;
+        p.s1=Y.x-0.39173f*Cr-0.81290f*Cb;
+        p.s2=Y.x+2.017f*Cr;
+        p.s3=1.0f;
+        p*=255.0f;
+
+        write_imageui(dst, (int2) { x, y }, convert_uint4(p));
+
+        p.s0=Y.y+1.5958f * Cb;
+        p.s1=Y.y-0.39173f*Cr-0.81290f*Cb;
+        p.s2=Y.y+2.017*Cr;
+        p.s3=1.0f;
+        p*=255.0f;
+
+        write_imageui(dst, (int2) { x+1, y }, convert_uint4(p));
+
+        p.s0=Y.z+1.5958f * Cb;
+        p.s1=Y.z-0.39173f*Cr-0.81290f*Cb;
+        p.s2=Y.z+2.017f*Cr;
+        p.s3=1.0f;
+        p*=255.0f;
+
+        write_imageui(dst, (int2) { x, y+1 }, convert_uint4(p));
+
+        p.s0=Y.w+1.5958f * Cb;
+        p.s1=Y.w-0.39173f*Cr-0.81290f*Cb;
+        p.s2=Y.w+2.017f*Cr;
+        p.s3=1.0f;
+        p*=255.0f;
+
+        write_imageui(dst, (int2) { x+1, y+1 }, convert_uint4(p));
+    }
 }
 
 __kernel void yuyvtorgb(global uchar *src, uint srcWidth, uint srcHeight, __write_only image2d_t dst, uint dstWidth, uint dstHeight)

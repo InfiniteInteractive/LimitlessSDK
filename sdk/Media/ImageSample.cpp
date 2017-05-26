@@ -7,6 +7,7 @@ ImageSample::ImageSample():
 m_buffer(NULL),
 m_externalBuffer(false),
 m_size(0),
+m_actualSize(0),
 m_width(0),
 m_pitch(0),
 m_height(0), 
@@ -58,6 +59,7 @@ void ImageSample::setImage(unsigned char *buffer, unsigned int width, unsigned i
 	m_buffer=buffer;
 	m_externalBuffer=true;
 	m_size=(pitch*bytes)*height;
+    m_actualSize=m_size;
 	m_width=width;
 	m_pitch=pitch;
 	m_height=height;
@@ -76,19 +78,42 @@ void ImageSample::resize(unsigned int width, unsigned int pitch, unsigned int he
 	int bytes=(int)ceil((float)(channels*channelBits)/8);
 	int size=(pitch*bytes)*height;
 
-	if(size > m_size)
+	if(size > m_actualSize)
 	{
 		freeBuffer();
 		m_buffer=(unsigned char *)malloc(size);
 		m_externalBuffer=false;
 		m_size=size;
+        m_actualSize=size;
 	}
+    else
+        m_size=size;
 
 	m_width=width;
 	m_pitch=pitch;
 	m_height=height;
 	m_channels=channels;
 	m_channelBits=channelBits;
+}
+
+void ImageSample::resizeBuffer(unsigned int width, unsigned int height, unsigned int channels, unsigned int channelBits, unsigned int size)
+{
+    if(size > m_actualSize)
+    {
+        freeBuffer();
+        m_buffer=(unsigned char *)malloc(size);
+        m_externalBuffer=false;
+        m_size=size;
+        m_actualSize=size;
+    }
+    else
+        m_size=size;
+
+    m_width=width;
+    m_pitch=width;
+    m_height=height;
+    m_channels=channels;
+    m_channelBits=channelBits;
 }
 
 void ImageSample::copy(ImageSample *imageSample)

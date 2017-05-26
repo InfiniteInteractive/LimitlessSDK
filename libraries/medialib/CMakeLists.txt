@@ -6,7 +6,6 @@ add_definitions(-DNOMINMAX)
 include(AddPackage)
 
 add_package("fftw" VERSION "3.3.4")
-#add_package("dlib" VERSION "19.0")
 
 hunter_add_package(dlib)
 find_package(dlib CONFIG REQUIRED)
@@ -43,8 +42,9 @@ set(medialib_headers
 
 set(medialib_libraries
     ${FFTW_LIBRARIES}
-    optimized cvlib.lib
-    debug cvlibd.lib
+#    optimized cvlib.lib
+#    debug cvlibd.lib
+    cvlib
     dlib::dlib
     )
 

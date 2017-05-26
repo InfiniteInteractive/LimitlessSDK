@@ -6,6 +6,43 @@
 
 #include <boost/format.hpp>
 
+extern "C"
+{
+    __declspec(dllexport) DWORD NvOptimusEnablement=0x00000001;
+    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance=1;
+}
+
+enum ComputeVendor
+{
+    Unknown=0,
+    Intel=1,
+    nVidia=2,
+    AMD=3
+};
+
+ComputeVendor getVendor(std::string vendor)
+{
+    if(vendor.compare(0, 5, "Intel"))
+        return ComputeVendor::Intel;
+    else if(vendor.compare(0, 6, "nVidia"))
+        return ComputeVendor::nVidia;
+    else if(vendor.compare(0, 3, "ATI"))
+        return ComputeVendor::AMD;
+    else if(vendor.compare(0, 22, "Advanced Micro Devices"))
+        return ComputeVendor::AMD;
+    return ComputeVendor::Unknown;
+}
+
+bool isSameVendor(std::string vendorName1, std::string vendorName2)
+{
+    ComputeVendor vendor1=getVendor(vendorName1);
+
+    if(vendor1==ComputeVendor::Unknown)
+        return false;
+
+    return (vendor1==getVendor(vendorName2));
+}
+
 using namespace Limitless;
 
 boost::mutex GPUContext::m_contextMutex;
@@ -19,6 +56,7 @@ HGLRC GPUContext::m_glHandle=NULL;
 #else// WIN32
 #endif// WIN32
 
+std::string GPUContext::m_openglVendor;
 std::string GPUContext::m_name;
 bool GPUContext::m_openCLInit=false;
 cl::Platform GPUContext::m_openCLPlatform;
@@ -92,12 +130,18 @@ bool  GPUContext::initOpenGL(Limitless::DisplayHandle displayHandle)
 
 	m_glHandle=wglCreateContext(m_hdc);
 
-//	wglMakeCurrent(m_hdc, m_glHandle);
+	wglMakeCurrent(m_hdc, m_glHandle);
 //	makeCurrent();
 #else //WIN32
 	assert(false);
 #endif //WIN32
 //	GLenum glError=glewInit();
+    const GLubyte *glVendor=glGetString(GL_VENDOR);
+
+    m_openglVendor=std::string((char *)glVendor);
+
+    const GLubyte *glVersion=glGetString(GL_VERSION);
+    const GLubyte *glExtensions=glGetString(GL_EXTENSIONS);
 
 #ifdef WIN32
 	wglMakeCurrent(NULL, NULL); //let go of context so thread can take it
@@ -114,8 +158,11 @@ bool  GPUContext::initOpenGL(Limitless::DisplayHandle displayHandle)
 
 void GPUContext::close()
 {
-	m_openClThread.stop();
-	stopThread();
+    if(m_openGLInit)
+    {
+        m_openClThread.stop();
+        stopThread();
+    }
 }
 
 //void GPUContext::openGLContext()
@@ -196,6 +243,18 @@ void GPUContext::internalInitOpenCL()
 
 	for(size_t i=0; i<platforms.size(); ++i)
 	{
+
+        std::string vendor;
+
+        platforms[i].getInfo(CL_PLATFORM_VENDOR, &m_name);
+
+        //Intel openCL will return the CPU as a valid openCL device for a GPU
+        //so lets make sure platforms match before selecting device
+        if(!isSameVendor(m_openglVendor, m_name))
+            continue;
+//        if(m_name!=m_openglVendor)
+//            continue;
+
 		cl_int error;
 
 		cl_context_properties clContextProps[]={ 
@@ -207,14 +266,18 @@ void GPUContext::internalInitOpenCL()
 //		clGetGLContextInfoKHR=(clGetGLContextInfoKHR_fn)clGetExtensionFunctionAddress("clGetGLContextInfoKHR");
 		clGetGLContextInfoKHR=(clGetGLContextInfoKHR_fn)clGetExtensionFunctionAddressForPlatform(platforms[i](), "clGetGLContextInfoKHR");
 		size_t deviceSize=sizeof(cl_device_id);
+        size_t deviceSizeRet;
 
-		error=clGetGLContextInfoKHR(clContextProps, CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, deviceSize, &openGLDevice, &deviceSize);
+		error=clGetGLContextInfoKHR(clContextProps, CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, deviceSize, &openGLDevice, &deviceSizeRet);
 
 		if(error == CL_SUCCESS)
 		{
-			m_openCLPlatform=platforms[i];
-			found=true;
-			break;
+            if(deviceSizeRet!=0)
+            {
+                m_openCLPlatform=platforms[i];
+                found=true;
+                break;
+            }
 		}
 	}
 
@@ -250,7 +313,7 @@ void GPUContext::internalInitOpenCL()
 	m_openCLDevice.getInfo(CL_DEVICE_EXTENSIONS, &extensions);
 	m_openCLDevice.getInfo(CL_DEVICE_VENDOR, &vendor);
 	m_openCLDevice.getInfo(CL_DEVICE_PROFILE, &profile);
-	m_openCLDevice.getInfo(CL_DEVICE_IL_VERSION, &languages);
+//	m_openCLDevice.getInfo(CL_DEVICE_IL_VERSION, &languages);
 
 	m_openCLContext=cl::Context(m_openCLDevice, clContextProps, NULL, NULL, &error);
 	if(error != CL_SUCCESS)
@@ -280,7 +343,7 @@ __declspec(thread) cl::CommandQueue *perThread_clComandQueue=nullptr;
 thread_local cl::CommandQueue *perThread_clComandQueue=nullptr;
 #endif
 
-cl::CommandQueue GPUContext::openCLCommandQueue()
+cl::CommandQueue &GPUContext::openCLCommandQueue()
 {
 //	openCLContext();
 //	return m_openCLComandQueue;
@@ -295,7 +358,7 @@ cl::CommandQueue GPUContext::openCLCommandQueue()
 	return *perThread_clComandQueue;
 }
 
-cl::Device GPUContext::openCLDevice()
+cl::Device &GPUContext::openCLDevice()
 {
 	return m_openCLDevice;
 }
@@ -395,8 +458,8 @@ void GPUContext::drawThread()
 
 		if(m_requestRedraw > 0)
 		{
-			glHandle=wglGetCurrentContext();
-			hdc=wglGetCurrentDC();
+//			glHandle=wglGetCurrentContext();
+//			hdc=wglGetCurrentDC();
 //			OutputDebugStringA((boost::format("Draw gl:0x%016x  hdc:0x%016x\n")%glHandle%hdc).str().c_str());
 
 			size_t requests=m_requestRedraw;
@@ -413,6 +476,12 @@ void GPUContext::drawThread()
 		hdc=wglGetCurrentDC();
 //		OutputDebugStringA((boost::format("End gl:0x%016x  hdc:0x%016x\n")%glHandle%hdc).str().c_str());
 	}
+
+    //need to release items we have or deconstructor will handle it in another thread with fault
+    m_openCLComandQueue=cl::CommandQueue();
+    m_openCLContext=cl::Context();
+    m_openCLDevice=cl::Device();
+    m_openCLPlatform=cl::Platform();
 
 	m_threadRunning=false;
 	Limitless::Log::debug("GPUContext", "drawThread stopped");
@@ -442,6 +511,9 @@ void GPUContext::processTasks(std::unique_lock<std::mutex> &lock)
 	case GpuTask::InitOpenCl:
 		threadInitOpenCl(lock, gpuTask);
 		break;
+    case GpuTask::CreateBuffer:
+        threadCreateBuffer(lock, gpuTask);
+        break;
 	case GpuTask::CreateTexture:
 		threadCreateTexture(lock, gpuTask);
 		break;
@@ -496,6 +568,56 @@ void GPUContext::threadInitOpenCl(std::unique_lock<std::mutex> &lock, GpuTask *g
 
 	intOpenClTask->complete=true;
 	intOpenClTask->event.notify_all();
+}
+
+std::pair<GLuint, GLuint> GPUContext::createBuffer()
+{
+    CreateBufferTask task;
+
+    task.alloc=false;
+
+    executeTask(&task);
+
+    return std::pair<GLuint, GLuint>(task.pbo, task.texture);
+}
+
+std::pair<GLuint, GLuint> GPUContext::createBuffer(GLsizei size)
+{
+    CreateBufferTask task;
+
+    task.alloc=true;
+    task.size=size;
+
+    executeTask(&task);
+
+    return std::pair<GLuint, GLuint>(task.pbo, task.texture);
+}
+
+void GPUContext::threadCreateBuffer(std::unique_lock<std::mutex> &lock, GpuTask *gpuTask)
+{
+    //unlock so we can process while tasks are added
+    lock.unlock();
+
+    CreateBufferTask *task=(CreateBufferTask *)gpuTask;
+
+    glGenBuffers(1, &task->pbo);
+//    glGenTextures(1, &task->texture);
+
+    if(task->alloc)
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, task->pbo);
+        glBufferData(GL_ARRAY_BUFFER, task->size, NULL, GL_STATIC_DRAW);// GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+//        glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, task->texture);
+
+        glFinish();
+    }
+
+    //need to lock back before setting complete
+    lock.lock();
+
+    task->complete=true;
+    task->event.notify_all();
 }
 
 GLuint GPUContext::createTexture()

@@ -5,7 +5,15 @@
 #include "Media/GpuImageSample.h"
 #include "Media/MediaSampleFactory.h"
 
+#ifdef Media_EXPORTS
 #include <GL/glew.h>
+#else
+#ifdef _WINDOWS
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif //_WINDOWS
+#include <gl/gl.h>
+#endif
 #include "CL/cl.hpp"
 
 namespace Limitless

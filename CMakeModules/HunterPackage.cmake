@@ -1,7 +1,7 @@
 if(NOT DEFINED HUNTER_PACKAGE_INIT)
-	if(NOT DEFINED HUNTER_PACKAGE_DIR) #not set assume part of source tree
-		set(HUNTER_PACKAGE_DIR "${CMAKE_SOURCE_DIR}/packages/" CACHE STRING)
-	endif()
+#	if(NOT DEFINED HUNTER_PACKAGE_DIR) #not set assume part of source tree
+#		set(HUNTER_PACKAGE_DIR "${CMAKE_SOURCE_DIR}/packages/" CACHE STRING)
+#	endif()
 	
 	set(ENV{HUNTER_ROOT} "${HUNTER_PACKAGE_DIR}")
 	set(HUNTER_DIR "${CMAKE_SOURCE_DIR}/cmake/Hunter")

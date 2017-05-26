@@ -84,6 +84,7 @@ void main()\n\
 	color=vec3(1,0,0);\n\
 }";
 
+bool GLWidget::m_glewInit=false;
 
 GLWidget::GLWidget(QWidget *parent, GLWidget *masterWidget):
 QGLWidget(parent),
@@ -786,6 +787,13 @@ void GLWidget::drawThread()
 //bool GLWidget::draw(bool useCurrent)
 void GLWidget::draw()
 {
+    //glew init needs to be called for the dll otherwise functions will be null
+    if(!m_glewInit)
+    {
+        glewInit();
+        m_glewInit=true;
+    }
+
 	if(!isVisible())
 		return;// false;
 

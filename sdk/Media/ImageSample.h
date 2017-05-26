@@ -24,17 +24,19 @@ public:
 	virtual size_t size() const{return m_size;}
 
 //IImageSample
-	virtual std::string imageFormat() const{return "RGB";}
+	virtual std::string imageFormat() const{return m_imageFormat;}
 	virtual unsigned int width() const{return m_width;}
 	virtual unsigned int pitch() const{return m_pitch;}
 	virtual unsigned int height() const{return m_height;}
 	virtual unsigned int channels() const{return m_channels;}
 	virtual unsigned int channelBits() const{return m_channelBits;}
 
-	void setImage(unsigned char *buffer, unsigned int width, unsigned int height, unsigned int channles=3, unsigned int channelBits=8);
+    void setImageFormat(std::string &format) { m_imageFormat=format; }
+	void setImage(unsigned char *buffer, unsigned int width, unsigned int height, unsigned int channels=3, unsigned int channelBits=8);
 	void setImage(unsigned char *buffer, unsigned int width, unsigned int pitch, unsigned int height, unsigned int channles, unsigned int channelBits);
-	void resize(unsigned int width, unsigned int height, unsigned int channles=3, unsigned int channelBits=8);
+	void resize(unsigned int width, unsigned int height, unsigned int channels=3, unsigned int channelBits=8);
 	void resize(unsigned int width, unsigned int pitch, unsigned int height, unsigned int channles, unsigned int channelBits);
+    void resizeBuffer(unsigned int width, unsigned int height, unsigned int channels, unsigned int channelBits, unsigned int size);
 
     void copy(ImageSample *imageSample);
 
@@ -46,7 +48,9 @@ private:
 	bool m_externalBuffer;
 	unsigned char *m_buffer;
 	size_t m_size;
+    size_t m_actualSize;
 
+    std::string m_imageFormat;
 	unsigned int m_width, m_pitch;
 	unsigned int m_height;
 

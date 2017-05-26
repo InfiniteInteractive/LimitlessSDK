@@ -9,8 +9,8 @@ project(MediaPipeline)
 add_definitions(-DNOMINMAX)
 #add_definitions(-DBOOST_ALL_DYN_LINK)
 
-hunter_add_package(Boost COMPONENTS system thread)
-find_package(Boost CONFIG REQUIRED system thread)
+#hunter_add_package(Boost COMPONENTS system thread)
+#find_package(Boost CONFIG REQUIRED system thread)
 
 set(MediaPipeline_Sources
 	MediaPipeline.cpp

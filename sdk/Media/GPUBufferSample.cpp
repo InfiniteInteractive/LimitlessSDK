@@ -7,17 +7,20 @@ namespace Limitless
 GpuBufferSample::GpuBufferSample():
     m_flags(CL_MEM_READ_WRITE),
     m_size(0),
-    m_actualSize(0)
+    m_actualSize(0),
+    m_pbo(0)
 {}
 
 GpuBufferSample::GpuBufferSample(size_t size):
-    m_flags(CL_MEM_READ_WRITE)
+    m_flags(CL_MEM_READ_WRITE),
+    m_pbo(0)
 {
     resize(size);
 }
 
 GpuBufferSample::GpuBufferSample(unsigned char *buffer, size_t size):
-    m_flags(CL_MEM_READ_WRITE)
+    m_flags(CL_MEM_READ_WRITE),
+    m_pbo(0)
 {
     resize(size);
 
@@ -36,15 +39,19 @@ void GpuBufferSample::resize(size_t bufferSize)
     {
         cl_int error=CL_SUCCESS;
 
-        GPUContext::makeOpenGLCurrent();
+//        GPUContext::makeOpenGLCurrent();
+//
+//        glGenBuffers(1, &m_pbo);
+//        glBindBuffer(GL_ARRAY_BUFFER, m_pbo);
+//        glBufferData(GL_ARRAY_BUFFER, bufferSize, NULL, GL_DYNAMIC_DRAW);
+//        glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, m_texture);
+//        glFinish();
+        std::pair<GLuint, GLuint> buffers=GPUContext::createBuffer(bufferSize);
 
-        glGenBuffers(1, &m_pbo);
-        glBindBuffer(GL_ARRAY_BUFFER, m_pbo);
-        glBufferData(GL_ARRAY_BUFFER, bufferSize, NULL, GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, m_texture);
-        glFinish();
+        m_pbo=buffers.first;
+//        m_texture=buffers.second;
 
-        m_buffer=cl::BufferGL(GPUContext::openCLContext(), m_flags, m_texture, &error);
+        m_buffer=cl::BufferGL(GPUContext::openCLContext(), m_flags, m_pbo, &error);
         m_size=bufferSize;
         m_actualSize=bufferSize;
         m_hostBuffer.clear();

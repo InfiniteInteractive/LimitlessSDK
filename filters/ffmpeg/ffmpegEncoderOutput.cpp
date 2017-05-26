@@ -438,7 +438,7 @@ void FfmpegEncoderOutput::addVideoStream()
 	}
 
 	if(m_formatContext->flags & AVFMT_GLOBALHEADER)
-		codecContext->flags|=AV_CODEC_FLAG_GLOBAL_HEADER;
+		codecContext->flags|=CODEC_FLAG_GLOBAL_HEADER;
 }
 
 void FfmpegEncoderOutput::closeVideoStream()
@@ -556,7 +556,7 @@ void FfmpegEncoderOutput::openAudio(AVCodec *codec/*, AVDictionary *opt_arg*/)
 		return;
 	}
 
-	if(codecContext->codec->capabilities & AV_CODEC_CAP_VARIABLE_FRAME_SIZE)
+	if(codecContext->codec->capabilities & CODEC_CAP_VARIABLE_FRAME_SIZE)
 		nb_samples=10000;
 	else
 		nb_samples=codecContext->frame_size;

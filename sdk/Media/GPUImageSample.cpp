@@ -252,7 +252,7 @@ bool GpuImageSample::copy(GpuImageSample *sample, cl::Event &event, std::vector<
 	std::vector<cl::Event> localWaitEvents;
 
 	if((m_width != sample->width()) || (m_height != sample->height()))
-		resize(sample->width(), sample->height());
+		resize(sample->width(), sample->height(), sample->channels(), sample->channelBits());
 
 	if(waitEvents != nullptr)
 		localWaitEvents.insert(localWaitEvents.end(), waitEvents->begin(), waitEvents->end());

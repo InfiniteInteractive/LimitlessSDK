@@ -8,8 +8,8 @@ project(ffmpeg)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-hunter_add_package(Boost COMPONENTS system filesystem thread)
-find_package(Boost CONFIG REQUIRED system filesystem thread)
+#hunter_add_package(Boost COMPONENTS system filesystem thread)
+#find_package(Boost CONFIG REQUIRED system filesystem thread)
 
 find_package(ffmpeg REQUIRED)
 
