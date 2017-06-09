@@ -49,6 +49,7 @@ set(QtComponents_Libraries
     Utilities.lib
     Base.lib
     Media.lib
+    opengl_util
 	opengl32.lib
     glu32.lib
     glew::glew
@@ -88,6 +89,9 @@ link_directories(${LIBRARY_OUTPUT_PATH})
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
 
+#include_directories(${LIBRARIES_PATH}/opengl_util)
+#include_directories(${CMAKE_BINARY_DIR}/libraries/opengl_util)
+
 #set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
 
 add_library(QtComponents SHARED
@@ -109,6 +113,7 @@ add_dependencies(QtComponents Base)
 add_dependencies(QtComponents Media)
 add_dependencies(QtComponents Utilities)
 add_dependencies(QtComponents Embed)
+add_dependencies(QtComponents opengl_util)
 
 create_target_launcher(QtComponents
     RUNTIME_LIBRARY_DIRS ${RUNTIME_LIBS}

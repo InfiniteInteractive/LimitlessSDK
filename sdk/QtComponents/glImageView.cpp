@@ -4,14 +4,16 @@
 #include <boost/format.hpp>
 #include <boost/numeric/ublas/vector.hpp>
 #include "Base/Log.h"
-#include <QtGui/QImage>
 #include "Media/ImageSampleSet.h"
 #include "Media/GpuImageSampleSet.h"
+
+#include <QtGui/QImage>
 #include <QtGui/QMouseEvent>
 #include <QtCore/QThread>
 #include <QtGui/QOpenGlContext>
 #include <QtPlatformHeaders/QWGLNativeContext>
 #include <QtGui/QWindow>
+
 
 //#include "ControlStructures/gpuUploadSample.h"
 
@@ -38,16 +40,55 @@ using namespace boost::numeric;
 namespace Limitless
 {
 
+//std::string vertexShader="\
+//#version 330\n\
+//\n\
+//layout(location = 0) in vec2 vertex;\n\
+//layout(location = 1) in vec2 vertexTexCoord;\n\
+//out vec2 texCoord;\n\
+//\n\
+//void main()\n\
+//{\n\
+//	texCoord=vertexTexCoord;\n\
+//	gl_Position=vec4(vertex, 0.0, 1.0);\n\
+//}";
+//
+//std::string fragmentShader="\
+//#version 330\n\
+//\n\
+//in vec2 texCoord;\n\
+//out vec3 color;\n\
+//uniform usampler2D textureSampler;\n\
+//\n\
+//void main()\n\
+//{\n\
+//	uvec4 texel=texture(textureSampler, texCoord);\n\
+//	vec4 normalizedColor=vec4(texel)/255.0;\n\
+//	color=normalizedColor.rgb;\n\
+////	color=vec3(normalizedColor.r, 1.0, texel.b);\n\
+////	color=vec3(texCoord.x, texCoord.y, 0.0);\n\
+//}";
+
 std::string vertexShader="\
 #version 330\n\
 \n\
 layout(location = 0) in vec2 vertex;\n\
-layout(location = 1) in vec2 vertexTexCoord;\n\
+uniform ImagePos\
+{\
+    ivec2 window;\
+    ivec2 image;\
+    vec2 center;\
+    float zoom;\
+};\
 out vec2 texCoord;\n\
 \n\
 void main()\n\
 {\n\
-	texCoord=vertexTexCoord;\n\
+    vec2 wndCoord;\
+    wndCoord.x=float(window.x)/2.0f*vertex.x;\
+    wndCoord.y=float(window.y)/2.0f*-vertex.y;\
+    wndCoord*=zoom;\
+    texCoord=(center+wndCoord)/image;\
 	gl_Position=vec4(vertex, 0.0, 1.0);\n\
 }";
 
@@ -60,11 +101,17 @@ uniform usampler2D textureSampler;\n\
 \n\
 void main()\n\
 {\n\
-	uvec4 texel=texture(textureSampler, texCoord);\n\
-	vec4 normalizedColor=vec4(texel)/255.0;\n\
-	color=normalizedColor.rgb;\n\
-//	color=vec3(normalizedColor.r, 1.0, texel.b);\n\
-//	color=vec3(texCoord.x, texCoord.y, 0.0);\n\
+    if((texCoord.x<0.0) || (texCoord.x>1.0))\n\
+        color=vec3(0.8, 0.8, 0.8);\n\
+    else if((texCoord.y<0.0) || (texCoord.y>1.0))\n\
+        color=vec3(0.8, 0.8, 0.8);\n\
+    else\n\
+    {\
+//        color=vec3(texCoord.x, texCoord.y, 0.0);\n\
+        uvec4 texel=texture(textureSampler, texCoord);\n\
+        vec4 normalizedColor=vec4(texel)/255.0;\n\
+        color=normalizedColor.rgb;\n\
+    }\
 }";
 
 std::string vertexOverlayShader="\
@@ -98,6 +145,8 @@ void initGlew()
     }
 }
 
+unsigned int GLImageView::invalidTexture=std::numeric_limits<unsigned int>::max();
+
 GLImageView::GLImageView(QWidget *parent, GLImageView *masterWidget, bool manualDraw):
 QGLWidget(parent),
 m_displayMode(SINGLE),
@@ -113,7 +162,10 @@ m_rotY(0.0f),
 m_rotZ(0.0f),
 m_init(false),
 m_readyToInit(false),
-m_manualDraw(manualDraw)
+m_manualDraw(manualDraw),
+m_texture(invalidTexture),
+m_currentImageWidth(0),
+m_currentImageHeight(0)
 {
 	m_sampleInUse=false;
 	m_textureLoaded=false;
@@ -213,10 +265,6 @@ bool GLImageView::initialize()
 	m_textureSamplerID=glGetUniformLocation(m_programID, "textureSampler");
 	checkErrorGL();
 
-	glGenVertexArrays(1, &m_vertexArrayID);
-	glBindVertexArray(m_vertexArrayID);
-	checkErrorGL();
-
 	m_textureType=GL_TEXTURE_2D;
 	glEnable(m_textureType);
 	checkErrorGL();
@@ -245,6 +293,60 @@ bool GLImageView::initialize()
 
 //	doneCurrent();
 
+     std::vector<glm::vec2> verticies(6);
+
+    verticies[0].x=-1.0f;
+    verticies[0].y=1.0f;
+    verticies[1].x=1.0f;
+    verticies[1].y=1.0f;
+    verticies[2].x=-1.0f;
+    verticies[2].y=-1.0f;
+    verticies[3].x=1.0f;
+    verticies[3].y=1.0f;
+    verticies[4].x=1.0f;
+    verticies[4].y=-1.0f;
+    verticies[5].x=-1.0f;
+    verticies[5].y=-1.0f;
+
+    glGenBuffers(1, &m_vertexBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, verticies.size()*sizeof(glm::vec2), verticies.data(), GL_STATIC_DRAW);
+
+    glGenVertexArrays(1, &m_vertexArrayID);
+    glBindVertexArray(m_vertexArrayID);
+    checkErrorGL();
+    
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
+    glVertexAttribPointer(
+        0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
+        2,                  // size
+        GL_FLOAT,           // type
+        GL_FALSE,           // normalized?
+        0,                  // stride
+        (void*)0            // array buffer offset
+    );
+    assert(checkErrorGL());
+
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, m_texCoordBuffer);
+    assert(checkErrorGL());
+    glVertexAttribPointer(
+        1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+        2,                                // size : U+V => 2
+        GL_FLOAT,                         // type
+        GL_FALSE,                         // normalized?
+        0,                                // stride
+        (void*)0                          // array buffer offset
+    );
+    assert(checkErrorGL());
+
+    glBindVertexArray(0);
+
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+
+
 	m_init=true;
 	return true;
 }
@@ -270,21 +372,21 @@ void GLImageView::paintGL()
 {
 }
 
-void GLImageView::fitToScreen()
-{
-	float transX, transY;
-
-	m_transX=0.0f;
-	m_transY=0.0f;
-	
-	transX=-m_imageQuadWidth/(2.0f*tan(m_fovX/2.0f));
-	transY=-m_imageQuadHeight/(2.0f*tan(m_fovY/2.0f));
-	
-	if(transX < transY)
-		m_transZ=transX;
-	else
-		m_transZ=transY;
-}
+//void GLImageView::fitToScreen()
+//{
+//	float transX, transY;
+//
+//	m_transX=0.0f;
+//	m_transY=0.0f;
+//	
+//	transX=-m_imageQuadWidth/(2.0f*tan(m_fovX/2.0f));
+//	transY=-m_imageQuadHeight/(2.0f*tan(m_fovY/2.0f));
+//	
+//	if(transX < transY)
+//		m_transZ=transX;
+//	else
+//		m_transZ=transY;
+//}
 
 void GLImageView::setDisplayMode(DisplayMode mode)
 {
@@ -459,116 +561,140 @@ void GLImageView::draw()
 
 	bool textureEnbled=false;
 	{
+		if(updateTexture)
 		{
-			if(updateTexture)
+			glActiveTexture(GL_TEXTURE0);
+			assert(checkErrorGL());
+
+			textureEnbled=true;
+
+			if(!m_images.empty())
 			{
-				glActiveTexture(GL_TEXTURE0);
-				assert(checkErrorGL());
-
-				textureEnbled=true;
-
-				if(!m_images.empty())
+				if(m_images[0])
 				{
-					if(m_images[0])
+                    Limitless::SharedIImageSample image=m_images[0];
+
+                    if((image->width()!=m_currentImageWidth)||(image->height()!=m_currentImageHeight))
+                    {
+                        m_currentImageWidth=image->width();
+                        m_currentImageHeight=image->height();
+                        m_centerPosX=(float)m_currentImageWidth/2.0f;
+                        m_centerPosY=(float)(float)m_currentImageHeight/2.0f;
+                        m_imagePosUniform->uniform("image")=glm::ivec2(m_currentImageWidth, m_currentImageHeight);
+                        m_imagePosUniform->uniform("center")=glm::vec2(m_centerPosX, m_centerPosY);
+                    }
+
+					if(image->isType(m_gpuImageSampleId))
 					{
-						if(m_images[0]->isType(m_gpuImageSampleId))
-						{
-							SharedGpuImageSample gpuImageSample=boost::dynamic_pointer_cast<GpuImageSample>(m_images[0]);
+						SharedGpuImageSample gpuImageSample=boost::dynamic_pointer_cast<GpuImageSample>(image);
 
-							m_currentTexture=gpuImageSample->texture();
-	//						glUniform1i(m_textureSamplerID, gpuImageSample->texture());
-							m_textureLoaded=true;
+						m_currentTexture=gpuImageSample->texture();
+//						glUniform1i(m_textureSamplerID, gpuImageSample->texture());
+						m_textureLoaded=true;
 
-							//need to hold onto the sample as the texture is not owned by this filter
-							m_currentGpuImageSample=gpuImageSample;
-							m_sampleInUse=false;
-						}
-						else
-						{
-							if(m_textures.size() < m_images.size())
-								allocateTextures(m_images.size());
+						//need to hold onto the sample as the texture is not owned by this filter
+						m_currentGpuImageSample=gpuImageSample;
+						m_sampleInUse=false;
+					}
+					else
+					{
+                        if(m_texture == invalidTexture)
+                            glGenTextures(1, &m_texture);
+                            
+                        glBindTexture(m_textureType, m_texture);
 
-							if((m_textureWidth != m_mediaWidth) || (m_textureHeight != m_mediaHeight))
-							{
-								//reset memory size
-								glTexImage2D(m_textureType, 0, GL_RGBA8UI, m_mediaWidth, m_mediaHeight, 0, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, NULL);
-	
-								m_textureWidth=m_mediaWidth;
-								m_textureHeight=m_mediaHeight;
-							}
+                        //reset memory size
+                        glTexImage2D(m_textureType, 0, GL_RGBA8UI, image->width(), image->height(), 0, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, image->buffer());
+                        m_textureLoaded=true;
 
-							for(size_t i=0; i<m_images.size(); ++i)
-							{
-								Limitless::IImageSample *image=m_images[i].get();
-
-								glBindTexture(m_textureType, m_textures[i]);
-
-								if(image->channels() == 4)
-									glTexSubImage2D(m_textureType, 0, 0, 0, image->width(), image->height(), GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, image->buffer());
-								else
-									glTexSubImage2D(m_textureType, 0, 0, 0, image->width(), image->height(), GL_RGB_INTEGER, GL_UNSIGNED_BYTE, image->buffer());
-							}
-							m_textureLoaded=true;
-	//						glUniform1i(m_textureSamplerID, 0);
-							m_currentTexture=m_textures[0];
-							m_sampleInUse=false;//texture updated no longer need sample
-						}
+//							if(m_textures.size() < m_images.size())
+//								allocateTextures(m_images.size());
+//
+//							if((m_textureWidth != m_mediaWidth) || (m_textureHeight != m_mediaHeight))
+//							{
+//								//reset memory size
+//								glTexImage2D(m_textureType, 0, GL_RGBA8UI, m_mediaWidth, m_mediaHeight, 0, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, NULL);
+//	
+//								m_textureWidth=m_mediaWidth;
+//								m_textureHeight=m_mediaHeight;
+//							}
+//
+//							for(size_t i=0; i<m_images.size(); ++i)
+//							{
+//								Limitless::IImageSample *image=m_images[i].get();
+//
+//								glBindTexture(m_textureType, m_textures[i]);
+//
+//								if(image->channels() == 4)
+//									glTexSubImage2D(m_textureType, 0, 0, 0, image->width(), image->height(), GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, image->buffer());
+//								else
+//									glTexSubImage2D(m_textureType, 0, 0, 0, image->width(), image->height(), GL_RGB_INTEGER, GL_UNSIGNED_BYTE, image->buffer());
+//							}
+//							m_textureLoaded=true;
+//	//						glUniform1i(m_textureSamplerID, 0);
+//							m_currentTexture=m_textures[0];
+//							m_sampleInUse=false;//texture updated no longer need sample
 					}
 				}
 			}
-			checkErrorGL();
-
-			if(m_textureLoaded)
-			{
-				glUseProgram(m_programID);
-				assert(checkErrorGL());
-
-				if(!textureEnbled)
-				{
-					glActiveTexture(GL_TEXTURE0);
-					assert(checkErrorGL());
-				}
-
-				glUniform1i(m_textureSamplerID, 0);
-				glBindTexture(m_textureType, m_currentTexture);
-
-                for(size_t i=0; i<m_imageQuads.size(); ++i)
-                {
-                    AxisAlignedQuad &quad=m_imageQuads[i];
-
-                    glEnableVertexAttribArray(0);
-                    glBindBuffer(GL_ARRAY_BUFFER, quad.vertexBuffer);
-                    glVertexAttribPointer(
-                        0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
-                        2,                  // size
-                        GL_FLOAT,           // type
-                        GL_FALSE,           // normalized?
-                        0,                  // stride
-                        (void*)0            // array buffer offset
-                    );
-                    assert(checkErrorGL());
-
-                    glEnableVertexAttribArray(1);
-                    glBindBuffer(GL_ARRAY_BUFFER, m_texCoordBuffer);
-                    assert(checkErrorGL());
-                    glVertexAttribPointer(
-                        1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-                        2,                                // size : U+V => 2
-                        GL_FLOAT,                         // type
-                        GL_FALSE,                         // normalized?
-                        0,                                // stride
-                        (void*)0                          // array buffer offset
-                    );
-                    glDrawArrays(GL_TRIANGLES, 0, 6); // 3 indices starting at 0 -> 1 triangle
-                    assert(checkErrorGL());
-
-                    glDisableVertexAttribArray(0);
-                    glDisableVertexAttribArray(1);
-                }
-			}
 		}
-	}
+		checkErrorGL();
 
+		if(m_textureLoaded)
+		{
+//			glUseProgram(m_programID);
+            m_program.use();
+
+            m_imagePosUniform->bind();
+			assert(checkErrorGL());
+
+			if(!textureEnbled)
+			{
+				glActiveTexture(GL_TEXTURE0);
+				assert(checkErrorGL());
+			}
+
+			glUniform1i(m_textureSamplerID, 0);
+			glBindTexture(m_textureType, m_currentTexture);
+
+            glBindVertexArray(m_vertexArrayID);
+//                for(size_t i=0; i<m_imageQuads.size(); ++i)
+//                {
+//                    AxisAlignedQuad &quad=m_imageQuads[i];
+//
+//                    glEnableVertexAttribArray(0);
+//                    glBindBuffer(GL_ARRAY_BUFFER, quad.vertexBuffer);
+//                    glVertexAttribPointer(
+//                        0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
+//                        2,                  // size
+//                        GL_FLOAT,           // type
+//                        GL_FALSE,           // normalized?
+//                        0,                  // stride
+//                        (void*)0            // array buffer offset
+//                    );
+//                    assert(checkErrorGL());
+//
+//                    glEnableVertexAttribArray(1);
+//                    glBindBuffer(GL_ARRAY_BUFFER, m_texCoordBuffer);
+//                    assert(checkErrorGL());
+//                    glVertexAttribPointer(
+//                        1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+//                        2,                                // size : U+V => 2
+//                        GL_FLOAT,                         // type
+//                        GL_FALSE,                         // normalized?
+//                        0,                                // stride
+//                        (void*)0                          // array buffer offset
+//                    );
+            glDrawArrays(GL_TRIANGLES, 0, 6); // 3 indices starting at 0 -> 1 triangle
+            assert(checkErrorGL());
+
+//                    glDisableVertexAttribArray(0);
+//                    glDisableVertexAttribArray(1);
+        }
+	}
+		
+	
+    
     drawOverlay();
 
 	swapBuffers();
@@ -590,6 +716,8 @@ void GLImageView::resizeMedia()
 	m_fovY=25.0f*(M_PI/180.0f);
 	m_fovX=2.0f*atan(ratio*tan(m_fovY/2));
 	float fovYRads=m_fovY*(180.0f/M_PI);
+
+    m_imagePosUniform->uniform("window")=glm::ivec2(width(), height());
 
 	calculateMediaPos();
 }
@@ -635,126 +763,137 @@ glm::ivec2 GLImageView::getWindowPos(glm::ivec2 imagePos)
 
 void GLImageView::calculateMediaPos()
 {
-	int mediaWidth;
-	int mediaHeight;
-	bool calculatePos=false;
-	int maxWidth=0;
-	int maxHeight=0;
-	int imagesX=0;
-	int imagesY=0;
+//	int mediaWidth;
+//	int mediaHeight;
+//	bool calculatePos=false;
+//	int maxWidth=0;
+//	int maxHeight=0;
+//	int imagesX=0;
+//	int imagesY=0;
+//
+//	if(!m_images.empty())
+//	{
+//		if(m_textures.size() < m_images.size())
+//			allocateTextures(m_images.size());
+//
+//		imagesX=sqrt((float)m_images.size());
+//
+//		if(m_images.size() <= (imagesX*imagesX))
+//			imagesY=imagesX;
+//		else if(m_images.size() <= (imagesX*(imagesX+1)))
+//			imagesY=imagesX+1;
+//		else
+//		{
+//			imagesX++;
+//			imagesY=imagesX;
+//		}
+//
+//		for(Limitless::SharedIImageSample &image:m_images)
+//		{
+//			if(!image)
+//				continue;
+//
+//			if(image->width() > maxWidth)
+//				maxWidth=image->width();
+//			if(image->height() > maxHeight)
+//				maxHeight=image->height();
+//		}
+//
+//		mediaWidth=maxWidth*imagesX;
+//		mediaHeight=maxHeight*imagesY;
+//
+//		calculatePos=true;
+//	}
+//
+//    if(calculatePos)
+//    {
+//        m_calculateMedia=false;
+//
+//        m_mediaCount=m_images.size();
+//        m_mediaWidth=mediaWidth;
+//        m_mediaHeight=mediaHeight;
+//        m_mediaGridWidth=maxWidth;
+//        m_mediaGridHeight=maxHeight;
+//        m_mediaGridX=imagesX;
+//        m_mediaGridY=imagesY;
+//
+//        int localWidth=width();
+//        int localHeight=height();
+//
+//        float aspect;
+//        float positionX, positionY;
+//
+//        aspect=(float)mediaHeight/mediaWidth;
+//
+//        if(localWidth*aspect>localHeight)
+//        {
+//            positionY=1.0;
+//            positionX=localHeight/(aspect*localWidth);
+//        }
+//        else
+//        {
+//            positionX=1.0;
+//            positionY=(localWidth*aspect)/localHeight;
+//        }
+//
+//        m_imageQuadWidth=2*positionX;
+//        m_imageQuadHeight=2*positionY;
+//
+//        m_imageQuads.resize(m_images.size());
+//
+//        float quadWidth=m_imageQuadWidth/imagesX;
+//        float quadHeight=m_imageQuadHeight/imagesY;
+//        size_t pos=0;
+//        size_t texPos=0;
+//
+//        int count=0;
+//
+//        float texWidth=1.0/imagesX;
+//        float texHeight=1.0/imagesY;
+//
+//        for(int x=0; x<imagesX && count<m_images.size(); ++x)
+//        {
+//            float xPos=(quadWidth*x)-positionX;
+//            float texXPos=texWidth*x;
+//
+//            for(int y=0; y<imagesY && count<m_images.size(); ++y)
+//            {
+//                float yPos=positionY-(quadHeight*y);
+//
+//                AxisAlignedQuad &quad=m_imageQuads[count];
+//
+//                quad.start=glm::vec2(xPos, yPos-quadHeight);
+//                quad.end=glm::vec2(xPos+quadWidth, yPos);
+//
+//                quad.verticies[0].x=xPos;
+//                quad.verticies[0].y=yPos;
+//                quad.verticies[1].x=xPos+quadWidth;
+//                quad.verticies[1].y=yPos;
+//                quad.verticies[2].x=xPos;
+//                quad.verticies[2].y=yPos-quadHeight;
+//                quad.verticies[3].x=xPos+quadWidth;
+//                quad.verticies[3].y=yPos;
+//                quad.verticies[4].x=xPos+quadWidth;
+//                quad.verticies[4].y=yPos-quadHeight;
+//                quad.verticies[5].x=xPos;
+//                quad.verticies[5].y=yPos-quadHeight;
+//
+//                glBindBuffer(GL_ARRAY_BUFFER, quad.vertexBuffer);
+//                glBufferData(GL_ARRAY_BUFFER, quad.verticies.size()*sizeof(glm::vec2), quad.verticies.data(), GL_STATIC_DRAW);
+//            }
+//        }
+//    }
+}
 
-	if(!m_images.empty())
-	{
-		if(m_textures.size() < m_images.size())
-			allocateTextures(m_images.size());
+void GLImageView::fitToScreen()
+{
+    m_centerPosX=(float)m_mediaWidth/2.0f;
+    m_centerPosY=(float)m_mediaHeight/2.0f;
+}
 
-		imagesX=sqrt((float)m_images.size());
-
-		if(m_images.size() <= (imagesX*imagesX))
-			imagesY=imagesX;
-		else if(m_images.size() <= (imagesX*(imagesX+1)))
-			imagesY=imagesX+1;
-		else
-		{
-			imagesX++;
-			imagesY=imagesX;
-		}
-
-		for(Limitless::SharedIImageSample &image:m_images)
-		{
-			if(!image)
-				continue;
-
-			if(image->width() > maxWidth)
-				maxWidth=image->width();
-			if(image->height() > maxHeight)
-				maxHeight=image->height();
-		}
-
-		mediaWidth=maxWidth*imagesX;
-		mediaHeight=maxHeight*imagesY;
-
-		calculatePos=true;
-	}
-
-    if(calculatePos)
-    {
-        m_calculateMedia=false;
-
-        m_mediaCount=m_images.size();
-        m_mediaWidth=mediaWidth;
-        m_mediaHeight=mediaHeight;
-        m_mediaGridWidth=maxWidth;
-        m_mediaGridHeight=maxHeight;
-        m_mediaGridX=imagesX;
-        m_mediaGridY=imagesY;
-
-        int localWidth=width();
-        int localHeight=height();
-
-        float aspect;
-        float positionX, positionY;
-
-        aspect=(float)mediaHeight/mediaWidth;
-
-        if(localWidth*aspect>localHeight)
-        {
-            positionY=1.0;
-            positionX=localHeight/(aspect*localWidth);
-        }
-        else
-        {
-            positionX=1.0;
-            positionY=(localWidth*aspect)/localHeight;
-        }
-
-        m_imageQuadWidth=2*positionX;
-        m_imageQuadHeight=2*positionY;
-
-        m_imageQuads.resize(m_images.size());
-
-        float quadWidth=m_imageQuadWidth/imagesX;
-        float quadHeight=m_imageQuadHeight/imagesY;
-        size_t pos=0;
-        size_t texPos=0;
-
-        int count=0;
-
-        float texWidth=1.0/imagesX;
-        float texHeight=1.0/imagesY;
-
-        for(int x=0; x<imagesX && count<m_images.size(); ++x)
-        {
-            float xPos=(quadWidth*x)-positionX;
-            float texXPos=texWidth*x;
-
-            for(int y=0; y<imagesY && count<m_images.size(); ++y)
-            {
-                float yPos=positionY-(quadHeight*y);
-
-                AxisAlignedQuad &quad=m_imageQuads[count];
-
-                quad.start=glm::vec2(xPos, yPos-quadHeight);
-                quad.end=glm::vec2(xPos+quadWidth, yPos);
-
-                quad.verticies[0].x=xPos;
-                quad.verticies[0].y=yPos;
-                quad.verticies[1].x=xPos+quadWidth;
-                quad.verticies[1].y=yPos;
-                quad.verticies[2].x=xPos;
-                quad.verticies[2].y=yPos-quadHeight;
-                quad.verticies[3].x=xPos+quadWidth;
-                quad.verticies[3].y=yPos;
-                quad.verticies[4].x=xPos+quadWidth;
-                quad.verticies[4].y=yPos-quadHeight;
-                quad.verticies[5].x=xPos;
-                quad.verticies[5].y=yPos-quadHeight;
-
-                glBindBuffer(GL_ARRAY_BUFFER, quad.vertexBuffer);
-                glBufferData(GL_ARRAY_BUFFER, quad.verticies.size()*sizeof(glm::vec2), quad.verticies.data(), GL_STATIC_DRAW);
-            }
-        }
-    }
+void GLImageView::fitOneToOne()
+{
+    width();
 }
 
 void GLImageView::allocateTextures(int textureCount)
@@ -897,76 +1036,96 @@ GLuint GLImageView::LoadShaderFiles(const char * vertex_file_path, const char * 
 
 GLuint GLImageView::LoadShaders(std::string VertexShaderCode, std::string FragmentShaderCode)
 {
-	GLint Result=GL_FALSE;
-	int InfoLogLength;
+    std::string error;
 
-	// Create the shaders
-	GLuint VertexShaderID=glCreateShader(GL_VERTEX_SHADER);
-	GLuint FragmentShaderID=glCreateShader(GL_FRAGMENT_SHADER);
+    if(!m_program.attachLoadAndCompileShaders(VertexShaderCode, FragmentShaderCode, error))
+    {
+        assert(false);
+        return 0;
+    }
 
-	// Compile Vertex Shader
-	//	printf("Compiling shader : %s\n", vertex_file_path);
-	char const * VertexSourcePointer=VertexShaderCode.c_str();
-	glShaderSource(VertexShaderID, 1, &VertexSourcePointer, NULL);
-	glCompileShader(VertexShaderID);
+    m_imagePosUniform=m_program.createUniformBuffer("ImagePos");
 
-	// Check Vertex Shader
-	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
-	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	if(InfoLogLength > 0)
-	{
-		std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
-		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
-		//printf("%s\n", &VertexShaderErrorMessage[0]);
-		OutputDebugStringA((boost::format("%s\n")%VertexShaderErrorMessage[0]).str().c_str());
-		assert(Result);
-	}
+    m_imagePosUniform->uniform("window")=glm::ivec2(width(), height());
+    m_imagePosUniform->uniform("image")=glm::ivec2(1, 1);
+    m_imagePosUniform->uniform("center")=glm::vec2(1.0f, 1.0f);
+    m_imagePosUniform->uniform("zoom")=1.0f;
 
-
-
-	// Compile Fragment Shader
-	//	printf("Compiling shader : %s\n", fragment_file_path);
-	char const * FragmentSourcePointer=FragmentShaderCode.c_str();
-	glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer, NULL);
-	glCompileShader(FragmentShaderID);
-
-	// Check Fragment Shader
-	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
-	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	if(InfoLogLength > 0)
-	{
-		std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
-		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
-		OutputDebugStringA((boost::format("%s\n")%FragmentShaderErrorMessage[0]).str().c_str());
-		//		printf("%s\n", &FragmentShaderErrorMessage[0]);
-		assert(Result);
-	}
-
-
-
-	// Link the program
-	//	printf("Linking program\n");
-	GLuint ProgramID=glCreateProgram();
-	glAttachShader(ProgramID, VertexShaderID);
-	glAttachShader(ProgramID, FragmentShaderID);
-	glLinkProgram(ProgramID);
-
-	// Check the program
-	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
-	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	if(InfoLogLength > 0)
-	{
-		std::vector<char> ProgramErrorMessage(InfoLogLength+1);
-		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
-		OutputDebugStringA((boost::format("%s\n")%ProgramErrorMessage[0]).str().c_str());
-		//		printf("%s\n", &ProgramErrorMessage[0]);
-		assert(Result);
-	}
-
-	glDeleteShader(VertexShaderID);
-	glDeleteShader(FragmentShaderID);
-
-	return ProgramID;
+    return m_program.id();
 }
+
+//GLuint GLImageView::LoadShaders(std::string VertexShaderCode, std::string FragmentShaderCode)
+//{
+//	GLint Result=GL_FALSE;
+//	int InfoLogLength;
+//
+//	// Create the shaders
+//	GLuint VertexShaderID=glCreateShader(GL_VERTEX_SHADER);
+//	GLuint FragmentShaderID=glCreateShader(GL_FRAGMENT_SHADER);
+//
+//	// Compile Vertex Shader
+//	//	printf("Compiling shader : %s\n", vertex_file_path);
+//	char const * VertexSourcePointer=VertexShaderCode.c_str();
+//	glShaderSource(VertexShaderID, 1, &VertexSourcePointer, NULL);
+//	glCompileShader(VertexShaderID);
+//
+//	// Check Vertex Shader
+//	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
+//	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+//	if(InfoLogLength > 0)
+//	{
+//		std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
+//		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
+//		//printf("%s\n", &VertexShaderErrorMessage[0]);
+//		OutputDebugStringA((boost::format("%s\n")%VertexShaderErrorMessage[0]).str().c_str());
+//		assert(Result);
+//	}
+//
+//
+//
+//	// Compile Fragment Shader
+//	//	printf("Compiling shader : %s\n", fragment_file_path);
+//	char const * FragmentSourcePointer=FragmentShaderCode.c_str();
+//	glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer, NULL);
+//	glCompileShader(FragmentShaderID);
+//
+//	// Check Fragment Shader
+//	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
+//	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+//	if(InfoLogLength > 0)
+//	{
+//		std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
+//		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
+//		OutputDebugStringA((boost::format("%s\n")%FragmentShaderErrorMessage[0]).str().c_str());
+//		//		printf("%s\n", &FragmentShaderErrorMessage[0]);
+//		assert(Result);
+//	}
+//
+//
+//
+//	// Link the program
+//	//	printf("Linking program\n");
+//	GLuint ProgramID=glCreateProgram();
+//	glAttachShader(ProgramID, VertexShaderID);
+//	glAttachShader(ProgramID, FragmentShaderID);
+//	glLinkProgram(ProgramID);
+//
+//	// Check the program
+//	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
+//	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+//	if(InfoLogLength > 0)
+//	{
+//		std::vector<char> ProgramErrorMessage(InfoLogLength+1);
+//		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+//		OutputDebugStringA((boost::format("%s\n")%ProgramErrorMessage[0]).str().c_str());
+//		//		printf("%s\n", &ProgramErrorMessage[0]);
+//		assert(Result);
+//	}
+//
+//	glDeleteShader(VertexShaderID);
+//	glDeleteShader(FragmentShaderID);
+//
+//	return ProgramID;
+//}
 
 }//namespace Limitless

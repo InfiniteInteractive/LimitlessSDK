@@ -14,6 +14,7 @@
 //#include "Media/MediaSample.h"
 
 #ifndef Q_MOC_RUN
+#include "opengl_util/program.h"
 #include "Media/IImageSample.h"
 #include "Media/GPUImageSample.h"
 #include "Media/GPUContext.h"
@@ -105,6 +106,8 @@ protected:
 
     bool checkErrorGL();
 
+    void fitToScreen();
+    void fitOneToOne();
 private:
 //    static bool m_glewInit;
 //    bool m_glewInit;
@@ -119,7 +122,7 @@ private:
 //    void setupleMultipleImages(const std::vector<QImage> &images);
 //    void setupCylindrical();
 
-    void fitToScreen();
+//    void fitToScreen();
     void resizeMedia();
     void calculateMediaPos();
 
@@ -179,8 +182,10 @@ private:
     int m_currentImage;
 
 
+    static unsigned int invalidTexture;
     GLenum m_textureType;
     std::vector<unsigned int> m_textures;
+    unsigned int m_texture;
 
     size_t m_imageInterfaceSampleId;
     size_t m_imageSampleSetInterfaceId;
@@ -190,6 +195,12 @@ private:
     //	size_t m_GPUImageSampleSetId;
     //	size_t m_GPUUploadSampleId;
     //	size_t m_GPUImageGLSampleId;
+
+    int m_currentImageWidth;
+    int m_currentImageHeight;
+    float m_zoom;
+    float m_centerPosX;
+    float m_centerPosY;
 
     float m_fovX;
     float m_fovY;
@@ -212,6 +223,8 @@ private:
     float m_rotY;
     float m_rotZ;
 
+    opengl_util::Program m_program;
+    opengl_util::UniformBuffer *m_imagePosUniform;
     GLuint m_programID;
     GLuint m_programOverlayID;
     GLuint m_textureSamplerID;
