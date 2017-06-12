@@ -37,18 +37,30 @@ public:
 
     cl::BufferGL glBuffer() { return m_buffer; }
 
+    bool acquireOpenCl(cl::Event &event, std::vector<cl::Event> *waitEvents=nullptr);
+    bool releaseOpenCl(cl::Event &event, std::vector<cl::Event> *waitEvents=nullptr);
+
 	//MediaSample
 	virtual unsigned char *buffer();
 	virtual size_t size() const{return m_size;}
 	virtual size_t actualSize() const{return m_actualSize;}
 
 private:
-	cl::Context m_openCLContext;
-	cl::CommandQueue m_openCLComandQueue;
+//	cl::Context m_openCLContext;
+//	cl::CommandQueue m_openCLComandQueue;
 	cl::BufferGL m_buffer;
 	GLuint m_texture;
 	GLuint m_pbo;
 	cl_mem_flags m_flags;
+
+    enum APIOwned
+    {
+        None,
+        OpenGl,
+        OpenCl
+    };
+
+    APIOwned m_owned;
 
 	std::vector<unsigned char> m_hostBuffer;
 

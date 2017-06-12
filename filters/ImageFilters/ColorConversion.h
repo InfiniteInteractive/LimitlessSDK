@@ -22,6 +22,7 @@ public:
 		RGB8,
 		RGB10,
 		RGB12,
+        BGR8,
 		YUV4,
 		YUV422,
 		YUV420,

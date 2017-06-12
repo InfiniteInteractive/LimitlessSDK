@@ -331,7 +331,7 @@ bool GpuImageSample::releaseMultipleOpenCl(std::vector<GpuImageSample *> samples
 	if(glImages.empty())
 		return false;
 
-	GPUContext::openCLCommandQueue().enqueueReleaseGLObjects(&glImages, waitEvents, &event);
+    cl_int error=GPUContext::openCLCommandQueue().enqueueReleaseGLObjects(&glImages, waitEvents, &event);
 
     for(size_t i=0; i<samples.size(); ++i)
     {
@@ -340,7 +340,7 @@ bool GpuImageSample::releaseMultipleOpenCl(std::vector<GpuImageSample *> samples
         if(sample->m_owned==OpenCl)
             sample->m_owned=OpenGl;
     }
-
+    assert(error==CL_SUCCESS);
 	return true;
 }
 
@@ -352,12 +352,12 @@ bool GpuImageSample::acquireOpenCl(cl::Event &event, std::vector<cl::Event> *wai
 	std::vector<cl::Memory> glImages;
 
 	glImages.push_back(m_image);
-	GPUContext::openCLCommandQueue().enqueueAcquireGLObjects(&glImages, waitEvents, &event);
+	cl_int error=GPUContext::openCLCommandQueue().enqueueAcquireGLObjects(&glImages, waitEvents, &event);
 	m_owned=OpenCl;
 #ifdef DEBUG_OWNER
     OutputDebugStringA((boost::format("GpuImageSample acquireOpenCl (%08x, %08x) OpenCl\n")%m_texture%m_image()).str().c_str());
 #endif //DEBUG_OWNER
-
+    assert(error==CL_SUCCESS);
 	return true;
 }
 
@@ -369,12 +369,12 @@ bool GpuImageSample::releaseOpenCl(cl::Event &event, std::vector<cl::Event> *wai
 	std::vector<cl::Memory> glImages;
 
 	glImages.push_back(m_image);
-	GPUContext::openCLCommandQueue().enqueueReleaseGLObjects(&glImages, waitEvents, &event);
+    cl_int error=GPUContext::openCLCommandQueue().enqueueReleaseGLObjects(&glImages, waitEvents, &event);
 	m_owned=OpenGl;
 #ifdef DEBUG_OWNER
     OutputDebugStringA((boost::format("GpuImageSample releaseOpenCl (%08x, %08x) OpenGl\n")%m_texture%m_image()).str().c_str());
 #endif //DEBUG_OWNER
-
+    assert(error==CL_SUCCESS);
 	return true;
 }
 

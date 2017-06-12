@@ -23,6 +23,7 @@ set(QtComponents_Sources
     listpopup.cpp
     mediaLogView.cpp
     mediaStoreView.cpp
+    openglUtils.cpp
     qComboBoxHelper.cpp
     qSettingsHelper.cpp
     SerializableObject.cpp
@@ -37,6 +38,7 @@ set(QtComponents_Headers
     glImageView.h
     listpopup.h
     mediaStoreView.h
+    openglUtils.h
     qComboBoxHelper.h
     qSettingsHelper.h
     qtcomponents_define.h
@@ -60,6 +62,7 @@ set(QtComponents_Libraries
 	Boost::thread
 	Boost::chrono
     Boost::date_time
+    cvlib
 )
 
 QT5_WRAP_UI(QtComponents_Uis

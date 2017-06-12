@@ -67,7 +67,7 @@ std::vector<float> synchronizeAudio(AudioBuffers &audioBuffers, float searchRang
 		if(spectrogramGenerator.process(audioBuffer, 0, spectrogram.data(), outputSize, width, height))
 //		if(spectrogramGenerator.process(audioBuffer.getBuffer(), audioBuffer.getSamples(), audioBuffer.getFormat(), spectrogram.data(), outputSize, width, height))
 		{
-			cvlib::SimpleImage imageSpectrogram(width, height, cvlib::ImageFormat::GreyScale32f, (uint8_t *)spectrogram.data(), outputSize*sizeof(float));
+			cvlib::SimpleImage imageSpectrogram(cvlib::ImageFormat::GreyScale32f, width, height, (uint8_t *)spectrogram.data(), outputSize*sizeof(float));
 
 			std::string fileName="spectrogram"+std::to_string(i)+".ppm";
 			cvlib::savePpm(imageSpectrogram, fileName);

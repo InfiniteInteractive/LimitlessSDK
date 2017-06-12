@@ -74,9 +74,14 @@ public:
     void notify();
 
     void draw();
-    virtual void drawOverlay() {};
+
+    void fitToScreen();
+    void fitOneToOne();
 
 protected:
+    virtual void drawOverlay() {};
+    virtual void onUpdateZoom(float zoom) {};
+
     bool updateSample();
     void setCurrentSample(Limitless::SharedMediaSample sample);
     GLuint LoadShaderFiles(const char * vertex_file_path, const char * fragment_file_path);
@@ -90,6 +95,11 @@ protected:
     virtual void initializeGL();
     virtual void resizeGL(int width, int height);
     virtual void paintGL();
+
+    virtual void mousePressEvent(QMouseEvent* event);
+    virtual void mouseReleaseEvent(QMouseEvent* event);
+    virtual void mouseMoveEvent(QMouseEvent* event);
+    virtual void wheelEvent(QWheelEvent *event);
 
     void resizeEvent(QResizeEvent *evt);
     //	void paintEvent(QPaintEvent *);
@@ -106,8 +116,6 @@ protected:
 
     bool checkErrorGL();
 
-    void fitToScreen();
-    void fitOneToOne();
 private:
 //    static bool m_glewInit;
 //    bool m_glewInit;
@@ -127,11 +135,6 @@ private:
     void calculateMediaPos();
 
     void allocateTextures(int textureCount);
-
-    void mousePressEvent(QMouseEvent* event);
-    void mouseReleaseEvent(QMouseEvent* event);
-    void mouseMoveEvent(QMouseEvent* event);
-
 //    QThread *getQThread();
 //
 //    QThread *m_processQThread;
@@ -222,6 +225,10 @@ private:
     float m_rotX;
     float m_rotY;
     float m_rotZ;
+
+    GLuint m_logoTextureID;
+    size_t m_logoWidth;
+    size_t m_logoHeight;
 
     opengl_util::Program m_program;
     opengl_util::UniformBuffer *m_imagePosUniform;

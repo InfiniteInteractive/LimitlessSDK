@@ -271,7 +271,7 @@ __kernel void rgbtoyuyv(__read_only image2d_t src, uint width, uint height, glob
 	uint x = gx*2;
 	uint gy = get_global_id(1);
 
-	if ((x+1 < width) & (gy<height))
+	if ((x+1 < width) && (gy<height))
 	{
 		uint off=(gy*width*2)+(x*2);
 
@@ -291,4 +291,29 @@ __kernel void rgbtoyuyv(__read_only image2d_t src, uint width, uint height, glob
 		dst[off+2]=(Cr0+Cr1)/2.0;
 		dst[off+3]=Y1;
 	}
+}
+
+void invertrb(__read_only image2d_t src, uint width, uint height, __write_only image2d_t dst)
+{
+    const uint gx=get_global_id(0);
+    const uint gy=get_global_id(1);
+
+    if((gx>=width)||(gy>=height))
+        return;
+
+    int2 pos=(int2)(gx, gy);
+    uint4 value=read_imageui(src, nearestSampler, pos);
+
+    write_imageui(dst, pos, value.zyxw);
+
+}
+
+__kernel void rgbtobgr(__read_only image2d_t src, uint width, uint height, __write_only image2d_t dst)
+{
+    invertrb(src, width, height, dst);
+}
+
+__kernel void bgrtorgb(__read_only image2d_t src, uint width, uint height, __write_only image2d_t dst)
+{ 
+    invertrb(src, width, height, dst);
 }

@@ -73,9 +73,14 @@ bool GpuBufferSample::write(unsigned char *buffer, size_t size, cl::Event &event
     {
         cl_int error=CL_SUCCESS;
 
-        m_buffer=cl::BufferGL(m_openCLContext, m_flags, m_texture, &error);
+        m_buffer=cl::BufferGL(GPUContext::openCLContext(), m_flags, m_texture, &error);
         m_size=size;
     }
+
+    cl::Event acquireEvent;
+
+    if(acquireOpenCl(acquireEvent))
+        acquireEvent.wait();
 
     cl_int status;
 
@@ -93,6 +98,11 @@ bool GpuBufferSample::read(unsigned char *buffer, size_t size, cl::Event &event)
 {
     if(size==0)
         return false;
+
+    cl::Event acquireEvent;
+
+    if(acquireOpenCl(acquireEvent))
+        acquireEvent.wait();
 
     cl_int status;
 
@@ -120,6 +130,40 @@ unsigned char *GpuBufferSample::buffer()
 
     event.wait();
     return m_hostBuffer.data();
+}
+
+bool GpuBufferSample::acquireOpenCl(cl::Event &event, std::vector<cl::Event> *waitEvents)
+{
+    if(m_owned==OpenCl)
+        return false;
+
+    std::vector<cl::Memory> glObjects;
+
+    glObjects.push_back(m_buffer);
+    cl_int error=GPUContext::openCLCommandQueue().enqueueAcquireGLObjects(&glObjects, waitEvents, &event);
+    m_owned=OpenCl;
+#ifdef DEBUG_OWNER
+    OutputDebugStringA((boost::format("GpuImageSample acquireOpenCl (%08x, %08x) OpenCl\n")%m_texture%m_image()).str().c_str());
+#endif //DEBUG_OWNER
+    assert(error==CL_SUCCESS);
+    return true;
+}
+
+bool GpuBufferSample::releaseOpenCl(cl::Event &event, std::vector<cl::Event> *waitEvents)
+{
+    if(m_owned!=OpenCl)
+        return false;
+
+    std::vector<cl::Memory> glObjects;
+
+    glObjects.push_back(m_buffer);
+    cl_int error=GPUContext::openCLCommandQueue().enqueueReleaseGLObjects(&glObjects, waitEvents, &event);
+    m_owned=OpenGl;
+#ifdef DEBUG_OWNER
+    OutputDebugStringA((boost::format("GpuImageSample releaseOpenCl (%08x, %08x) OpenGl\n")%m_texture%m_image()).str().c_str());
+#endif //DEBUG_OWNER
+    assert(error==CL_SUCCESS);
+    return true;
 }
 
 }//namespace Limitless

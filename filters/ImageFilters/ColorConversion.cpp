@@ -46,6 +46,7 @@ ColorFormat::ColorFormatMap &ColorFormat::getFormatMap()
 		formatMap.insert(ColorFormatMap::value_type(Type::RGB8, "RGB8"));
 		formatMap.insert(ColorFormatMap::value_type(Type::RGB10, "RGB10"));
 		formatMap.insert(ColorFormatMap::value_type(Type::RGB12, "RGB12"));
+        formatMap.insert(ColorFormatMap::value_type(Type::BGR8, "BGR8"));
 		formatMap.insert(ColorFormatMap::value_type(Type::YUV4, "YUV4"));
 		formatMap.insert(ColorFormatMap::value_type(Type::YUV422, "YUV422"));
 		formatMap.insert(ColorFormatMap::value_type(Type::YUV420, "YUV420"));
@@ -83,6 +84,16 @@ m_hasCommandQueue(false)
 
     typeYUVJ420PMap.insert(TypeKernelMap::value_type(ColorFormat::Type::RGB8, "yuvj420ptorgb"));
     m_kernelMap.insert(KernelNameMap::value_type(ColorFormat::Type::YUVJ420P, typeYUVJ420PMap));
+
+    TypeKernelMap typeRGBMap;
+
+    typeRGBMap.insert(TypeKernelMap::value_type(ColorFormat::Type::BGR8, "rgbtobgr"));
+    m_kernelMap.insert(KernelNameMap::value_type(ColorFormat::Type::RGB8, typeRGBMap));
+
+    TypeKernelMap typeBGRMap;
+
+    typeBGRMap.insert(TypeKernelMap::value_type(ColorFormat::Type::RGB8, "bgrtorgb"));
+    m_kernelMap.insert(KernelNameMap::value_type(ColorFormat::Type::BGR8, typeBGRMap));
 }
 
 ColorConversion::~ColorConversion()

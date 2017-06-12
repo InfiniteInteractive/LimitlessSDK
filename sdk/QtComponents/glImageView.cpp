@@ -7,13 +7,15 @@
 #include "Media/ImageSampleSet.h"
 #include "Media/GpuImageSampleSet.h"
 
+#include "cvlib/simpleImage.h"
+#include "cvlib/png.h"
+
 #include <QtGui/QImage>
 #include <QtGui/QMouseEvent>
 #include <QtCore/QThread>
 #include <QtGui/QOpenGlContext>
 #include <QtPlatformHeaders/QWGLNativeContext>
 #include <QtGui/QWindow>
-
 
 //#include "ControlStructures/gpuUploadSample.h"
 
@@ -87,7 +89,7 @@ void main()\n\
     vec2 wndCoord;\
     wndCoord.x=float(window.x)/2.0f*vertex.x;\
     wndCoord.y=float(window.y)/2.0f*-vertex.y;\
-    wndCoord*=zoom;\
+    wndCoord/=zoom;\
     texCoord=(center+wndCoord)/image;\
 	gl_Position=vec4(vertex, 0.0, 1.0);\n\
 }";
@@ -102,15 +104,15 @@ uniform usampler2D textureSampler;\n\
 void main()\n\
 {\n\
     if((texCoord.x<0.0) || (texCoord.x>1.0))\n\
-        color=vec3(0.8, 0.8, 0.8);\n\
+        color=vec3(0.1, 0.1, 0.1);\n\
     else if((texCoord.y<0.0) || (texCoord.y>1.0))\n\
-        color=vec3(0.8, 0.8, 0.8);\n\
+        color=vec3(0.1, 0.1, 0.1);\n\
     else\n\
     {\
-//        color=vec3(texCoord.x, texCoord.y, 0.0);\n\
         uvec4 texel=texture(textureSampler, texCoord);\n\
         vec4 normalizedColor=vec4(texel)/255.0;\n\
         color=normalizedColor.rgb;\n\
+//        color=vec3(texCoord.x, texCoord.y, normalizedColor.b);\n\
     }\
 }";
 
@@ -266,30 +268,52 @@ bool GLImageView::initialize()
 	checkErrorGL();
 
 	m_textureType=GL_TEXTURE_2D;
-	glEnable(m_textureType);
-	checkErrorGL();
+
+    glGenTextures(1, &m_logoTextureID);
+
+    cvlib::SimpleImage image;
+    cvlib::loadPng(image, "D:/projects/IIM/LimitlessSDK/resources/logo_92.png");
+
+    m_logoWidth=image.width;
+    m_logoHeight=image.height;
+
+    glBindTexture(m_textureType, m_logoTextureID);
+    glTexParameteri(m_textureType, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(m_textureType, GL_TEXTURE_MAX_LEVEL, 0);
+    glTexParameteri(m_textureType, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(m_textureType, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(m_textureType, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(m_textureType, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    GLenum format;
+    if(image.format==cvlib::ImageFormat::Rgb)
+        format=GL_RGB_INTEGER;
+    else if(image.format==cvlib::ImageFormat::Rgba)
+        format=GL_RGBA_INTEGER;
+    glTexImage2D(m_textureType, 0, GL_RGBA8UI, image.width, image.height, 0, format, GL_UNSIGNED_BYTE, image.data);
+    glBindTexture(m_textureType, 0);
 
 	GLboolean textureSet;
 	glGetBooleanv(m_textureType, &textureSet);
 	
-	m_texCoordBufferData.resize(12);
-	m_texCoordBufferData[0]=0.0;
-	m_texCoordBufferData[1]=0.0;
-	m_texCoordBufferData[2]=1.0;
-	m_texCoordBufferData[3]=0.0;
-	m_texCoordBufferData[4]=0.0;
-	m_texCoordBufferData[5]=1.0;
-	m_texCoordBufferData[6]=1.0;
-	m_texCoordBufferData[7]=0.0;
-	m_texCoordBufferData[8]=1.0;
-	m_texCoordBufferData[9]=1.0;
-	m_texCoordBufferData[10]=0.0;
-	m_texCoordBufferData[11]=1.0;
-
-	glGenBuffers(1, &m_texCoordBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, m_texCoordBuffer);
-	glBufferData(GL_ARRAY_BUFFER, m_texCoordBufferData.size()*sizeof(GLfloat), m_texCoordBufferData.data(), GL_STATIC_DRAW);
-	checkErrorGL();
+//	m_texCoordBufferData.resize(12);
+//	m_texCoordBufferData[0]=0.0;
+//	m_texCoordBufferData[1]=0.0;
+//	m_texCoordBufferData[2]=1.0;
+//	m_texCoordBufferData[3]=0.0;
+//	m_texCoordBufferData[4]=0.0;
+//	m_texCoordBufferData[5]=1.0;
+//	m_texCoordBufferData[6]=1.0;
+//	m_texCoordBufferData[7]=0.0;
+//	m_texCoordBufferData[8]=1.0;
+//	m_texCoordBufferData[9]=1.0;
+//	m_texCoordBufferData[10]=0.0;
+//	m_texCoordBufferData[11]=1.0;
+//
+//	glGenBuffers(1, &m_texCoordBuffer);
+//	glBindBuffer(GL_ARRAY_BUFFER, m_texCoordBuffer);
+//	glBufferData(GL_ARRAY_BUFFER, m_texCoordBufferData.size()*sizeof(GLfloat), m_texCoordBufferData.data(), GL_STATIC_DRAW);
+//	checkErrorGL();
 
 //	doneCurrent();
 
@@ -328,23 +352,23 @@ bool GLImageView::initialize()
     );
     assert(checkErrorGL());
 
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, m_texCoordBuffer);
-    assert(checkErrorGL());
-    glVertexAttribPointer(
-        1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-        2,                                // size : U+V => 2
-        GL_FLOAT,                         // type
-        GL_FALSE,                         // normalized?
-        0,                                // stride
-        (void*)0                          // array buffer offset
-    );
-    assert(checkErrorGL());
+//    glEnableVertexAttribArray(1);
+//    glBindBuffer(GL_ARRAY_BUFFER, m_texCoordBuffer);
+//    assert(checkErrorGL());
+//    glVertexAttribPointer(
+//        1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+//        2,                                // size : U+V => 2
+//        GL_FLOAT,                         // type
+//        GL_FALSE,                         // normalized?
+//        0,                                // stride
+//        (void*)0                          // array buffer offset
+//    );
+//    assert(checkErrorGL());
 
     glBindVertexArray(0);
 
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
+//    glDisableVertexAttribArray(0);
+//    glDisableVertexAttribArray(1);
 
 
 	m_init=true;
@@ -648,16 +672,18 @@ void GLImageView::draw()
             m_imagePosUniform->bind();
 			assert(checkErrorGL());
 
-			if(!textureEnbled)
+//			if(!textureEnbled)
 			{
 				glActiveTexture(GL_TEXTURE0);
 				assert(checkErrorGL());
 			}
 
 			glUniform1i(m_textureSamplerID, 0);
-			glBindTexture(m_textureType, m_currentTexture);
+			
 
             glBindVertexArray(m_vertexArrayID);
+            glBindTexture(m_textureType, m_currentTexture);
+
 //                for(size_t i=0; i<m_imageQuads.size(); ++i)
 //                {
 //                    AxisAlignedQuad &quad=m_imageQuads[i];
@@ -690,6 +716,34 @@ void GLImageView::draw()
 
 //                    glDisableVertexAttribArray(0);
 //                    glDisableVertexAttribArray(1);
+        }
+        else //logo
+        {
+            m_program.use();
+
+            if((m_logoWidth!=m_currentImageWidth)||(m_logoHeight!=m_currentImageHeight))
+            {
+                m_currentImageWidth=m_logoWidth;
+                m_currentImageHeight=m_logoHeight;
+                m_centerPosX=(float)m_currentImageWidth/2.0f;
+                m_centerPosY=(float)(float)m_currentImageHeight/2.0f;
+                m_imagePosUniform->uniform("image")=glm::ivec2(m_currentImageWidth, m_currentImageHeight);
+                m_imagePosUniform->uniform("center")=glm::vec2(m_centerPosX, m_centerPosY);
+            }
+
+            m_imagePosUniform->bind();
+            assert(checkErrorGL());
+
+            glActiveTexture(GL_TEXTURE0);
+            assert(checkErrorGL());
+
+            glUniform1i(m_textureSamplerID, 0);
+
+            glBindVertexArray(m_vertexArrayID);
+            glBindTexture(m_textureType, m_logoTextureID);
+            
+            glDrawArrays(GL_TRIANGLES, 0, 6); // 3 indices starting at 0 -> 1 triangle
+            assert(checkErrorGL());
         }
 	}
 		
@@ -725,21 +779,10 @@ void GLImageView::resizeMedia()
 glm::ivec2 GLImageView::getMediaPos(glm::ivec2 windowPos)
 {
     glm::ivec2 imagePos;
-    glm::vec2 glWindowPos;
+    glm::vec2 windowCenter(width()/2.0f, height()/2.0f);
 
-    glWindowPos.x=((float)windowPos.x/width()*2.0f)-1.0f;
-    glWindowPos.y=((float)windowPos.y/height()*2.0f)-1.0f;
-
-    if(!m_imageQuads.empty())
-    {
-        AxisAlignedQuad &quad=m_imageQuads[0];
-
-        glm::vec2 size=quad.end-quad.start;
-        
-        imagePos.x=(glWindowPos.x-quad.start.x)/size.x*m_mediaWidth;
-        imagePos.y=(glWindowPos.y-quad.start.y)/size.y*m_mediaHeight;
-        
-    }
+    imagePos.x=((float)windowPos.x-windowCenter.x)/m_zoom+m_centerPosX;
+    imagePos.y=((float)windowPos.y-windowCenter.y)/m_zoom+m_centerPosY;
     return imagePos;
 }
 
@@ -973,13 +1016,40 @@ void GLImageView::mouseMoveEvent(QMouseEvent* event)
 			}
 			else
 			{
-				m_rotY += (float)(event->globalX()-m_leftClick.x())*(360.0f/width());
-				m_rotX += (float)(m_leftClick.y()-event->globalY())*(360.0f/height());
+//				m_rotY += (float)(event->globalX()-m_leftClick.x())*(360.0f/width());
+//				m_rotX += (float)(m_leftClick.y()-event->globalY())*(360.0f/height());
+                QPoint point=(event->globalPos()-m_leftClick)/m_zoom;
+
+                m_centerPosX=m_centerPosX-point.x();
+                m_centerPosY=m_centerPosY-point.y();
+                m_imagePosUniform->uniform("center")=glm::vec2(m_centerPosX, m_centerPosY);
 				notify();
 			}
 		}
 		m_leftClick = event->globalPos();
 	}
+}
+
+void GLImageView::wheelEvent(QWheelEvent *event)
+{
+    QPoint point=event->angleDelta();
+
+    float zoom=point.y()/100.f;
+
+    if(zoom > 0.0f)
+        zoom=floor(zoom);
+    else
+        zoom=ceil(zoom);
+    zoom/=10.f;
+
+    m_zoom-=zoom;
+
+    if(m_zoom<0.1)
+        m_zoom=0.1;
+    
+    onUpdateZoom(m_zoom);
+
+    m_imagePosUniform->uniform("zoom")=m_zoom;
 }
 
 bool GLImageView::checkErrorGL()
@@ -1045,6 +1115,9 @@ GLuint GLImageView::LoadShaders(std::string VertexShaderCode, std::string Fragme
     }
 
     m_imagePosUniform=m_program.createUniformBuffer("ImagePos");
+
+    m_zoom=1.0f;
+    onUpdateZoom(m_zoom);
 
     m_imagePosUniform->uniform("window")=glm::ivec2(width(), height());
     m_imagePosUniform->uniform("image")=glm::ivec2(1, 1);
