@@ -20,26 +20,35 @@ find_package(OpenCL CONFIG REQUIRED)
 
 set(cvlib_sources
     convolve_cl.cpp
+    gaussian_cl.cpp
     image.cpp
+    imageFunctions_cl.cpp
     kernels_cl.cpp
     match.cpp
     png.cpp
     ppm.cpp
+    scharr_cl.cpp
     simpleImage.cpp
+    sobel_cl.cpp
     utils_cl.cpp
 )
 
 set(cvlib_headers
+    cvlib/convolve.h
     cvlib/convolve_cl.h
     cvlib/cvlibDefine.h
     cvlib/image.h
+    cvlib/gaussian_cl.h
     cvlib/imageDLib.h
+    cvlib/imageFunctions_cl.h
     cvlib/kernels_cl.h
     cvlib/match.h
     cvlib/png.h
     cvlib/ppm.h
+    cvlib/scharr_cl.h
     cvlib/simpleImage.h
     cvlib/slidingWindow.h
+    cvlib/sobel_cl.h
     cvlib/utils_cl.h
 )
 
@@ -53,6 +62,7 @@ set(cvlib_libraries
 include(EmbedFile)
 set(embedFiles
     kernels/convolve.cl
+    kernels/imageFunctions.cl
     kernels/utils.cl
 )
 embed_files(embededFiles "${embedFiles}")

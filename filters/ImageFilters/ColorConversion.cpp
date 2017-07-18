@@ -37,6 +37,28 @@ ColorFormat::Type ColorFormat::toType(std::string type)
 	return Type::Unknown;
 }
 
+bool ColorFormat::encoded(ColorFormat::Type type)
+{
+    switch(type)
+    {
+    case Type::RGB8:
+    case Type::BGR8:
+        return false;
+        break;
+    case Type::RGB10:
+    case Type::RGB12:
+    case Type::YUV4:
+    case Type::YUV422:
+    case Type::YUV420:
+    case Type::YUV422P:
+    case Type::YUV420P:
+    case Type::YUVJ420P:
+        return true;
+        break;
+    }
+    return true;
+}
+
 ColorFormat::ColorFormatMap &ColorFormat::getFormatMap()
 {
 	static ColorFormatMap formatMap;
@@ -260,7 +282,7 @@ bool ColorConversion::processSample(Limitless::SharedMediaPad sinkPad, Limitless
     }
 
 	std::vector<IImageSample *> imageSamples;
-	std::vector<SharedGpuImageSample> gpuImageSamples;
+	std::vector<GpuImageSample *> gpuImageSamples;
     std::vector<std::vector<cl::Event> > sampleEvents;
 
     struct GpuBuffer
@@ -276,73 +298,56 @@ bool ColorConversion::processSample(Limitless::SharedMediaPad sinkPad, Limitless
 	{
 		SharedGpuImageSample gpuImageSample=boost::dynamic_pointer_cast<GpuImageSample>(sample);
 				
-		gpuImageSamples.push_back(gpuImageSample);
+		gpuImageSamples.push_back(gpuImageSample.get());
 		sampleEvents.push_back(std::vector<cl::Event>());
 	}
-//	else if(sample->isType(m_gpuImageSampleSetId))
-//	{
-////		GpuImageSampleSet *imageSampleSet=dynamic_cast<GpuImageSampleSet *>(sample.get());
-////
-////		for(size_t i=0; i<imageSampleSet->sampleSetSize(); ++i)
-////		{
-////		}
-//	}
 	else if(sample->isType(m_imageSampleId))
 	{
 		IImageSample *imageSample=dynamic_cast<IImageSample *>(sample.get());
 
 		imageSamples.push_back(imageSample);
 	}
-//	else if(sample->isType(m_imageSampleSetId))
-//	{
-//		ImageSampleSet *imageSampleSet=dynamic_cast<ImageSampleSet *>(sample.get());
-//
-//		for(size_t i=0; i<imageSampleSet->sampleSetSize(); ++i)
-//		{
-//			SharedIImageSample iImageSample=imageSampleSet->sample(i);
-//
-//			if(iImageSample->isType(m_imageSampleId))
-//			{
-//				ImageSample *imageSample=dynamic_cast<ImageSample *>(iImageSample.get());
-//
-//				imageSamples.push_back(imageSample);
-//			}
-//			else if(iImageSample->isType(m_gpuImageSampleId))
-//			{
-//				SharedGpuImageSample gpuImageSample=boost::dynamic_pointer_cast<GpuImageSample>(iImageSample);
-//				
-//				gpuImageSamples.push_back(gpuImageSample);
-//				sampleEvents.push_back(std::vector<cl::Event>());
-//			}
-//		}
-//	}
 
 	if(!imageSamples.empty())
 	{
-        if(m_gpuCopyBuffers.size()<imageSamples.size())
-            m_gpuCopyBuffers.resize(imageSamples.size());
+        ColorFormat::Type type=ColorFormat::toType(imageSamples[0]->imageFormat());
 
-		for(size_t i=0; i<imageSamples.size(); ++i)
-		{
-			IImageSample *imageSample=imageSamples[i];
-//			SharedGpuImageSample gpuImageSample=boost::dynamic_pointer_cast<GpuImageSample>(newSample(m_gpuImageSampleId));
-//
-//			std::vector<cl::Event> events(1);
-//
-////			gpuImageSample->write(imageSample->buffer(), imageSample->width(), imageSample->height(), m_channels, events[0], nullptr);
-//			gpuImageSample->write(imageSample, events[0], nullptr);
-//			gpuImageSamples.push_back(gpuImageSample);
-//			sampleEvents.push_back(events);
+        if(ColorFormat::encoded(type))
+        {//image has some type of encoding so they need to be used as buffers
+            if(m_gpuCopyBuffers.size()<imageSamples.size())
+                m_gpuCopyBuffers.resize(imageSamples.size());
 
-//            SharedGpuBufferSample gpuBufferSample=newSampleType<GpuBufferSample>(m_gpuBufferSampleId);
-            GpuBufferSample *gpuBufferSample=&m_gpuCopyBuffers[i];
-            std::vector<cl::Event> events(1);
+            for(size_t i=0; i<imageSamples.size(); ++i)
+            {
+                IImageSample *imageSample=imageSamples[i];
 
-            gpuBufferSample->resize(imageSample->size());
-            gpuBufferSample->write(imageSample->buffer(), imageSample->size(), events[0]);
-            gpuBuffers.push_back(GpuBuffer(gpuBufferSample, imageSample->width(), imageSample->height()));
-            sampleEvents.push_back(events);
-		}
+                GpuBufferSample *gpuBufferSample=&m_gpuCopyBuffers[i];
+                std::vector<cl::Event> events(1);
+
+                gpuBufferSample->resize(imageSample->size());
+                gpuBufferSample->write(imageSample->buffer(), imageSample->size(), events[0]);
+                gpuBuffers.push_back(GpuBuffer(gpuBufferSample, imageSample->width(), imageSample->height()));
+                sampleEvents.push_back(events);
+            }
+        }
+        else
+        {
+            if(m_gpuCopyImages.size()<imageSamples.size())
+                m_gpuCopyImages.resize(imageSamples.size());
+
+            for(size_t i=0; i<imageSamples.size(); ++i)
+            {
+                IImageSample *imageSample=imageSamples[i];
+
+                Limitless::GpuImageSample *gpuImageSample=&m_gpuCopyImages[i];
+                std::vector<cl::Event> events(1);
+
+//                gpuImageSample->resize(imageSample->width(), imageSample->height(), imageSample->size());
+                gpuImageSample->write(imageSample, events[0]);
+                gpuImageSamples.push_back(gpuImageSample);
+                sampleEvents.push_back(events);
+            }
+        }
 	}
 
     if(gpuBuffers.empty()&&gpuImageSamples.empty())
@@ -382,7 +387,7 @@ bool ColorConversion::processSample(Limitless::SharedMediaPad sinkPad, Limitless
 
 	for(size_t i=0; i<gpuImageSamples.size(); ++i)
 	{
-		GpuImageSample *gpuImageSample=gpuImageSamples[i].get();
+		GpuImageSample *gpuImageSample=gpuImageSamples[i];
 		cl::Event acquireEvent;
 
 		glImages[0]=gpuImageSample->glImage();
@@ -399,9 +404,10 @@ bool ColorConversion::processSample(Limitless::SharedMediaPad sinkPad, Limitless
 
 	for(size_t i=0; i<gpuImageSamples.size(); ++i)
 	{
-		GpuImageSample *gpuImageSample=gpuImageSamples[i].get();
+		GpuImageSample *gpuImageSample=gpuImageSamples[i];
 		SharedGpuImageSample newGpuImageSample=boost::dynamic_pointer_cast<GpuImageSample>(newSample(m_gpuImageSampleId));
 		
+        newGpuImageSample->resize(gpuImageSample->width(), gpuImageSample->height(), 4);
 		newGpuImageSamples.push_back(newGpuImageSample);
 
 		status=m_kernel.setArg(0, gpuImageSample->glImage());
@@ -409,7 +415,7 @@ bool ColorConversion::processSample(Limitless::SharedMediaPad sinkPad, Limitless
 		status=m_kernel.setArg(2, gpuImageSample->height());
 		status=m_kernel.setArg(3, newGpuImageSample->glImage());
 		
-		cl::NDRange globalThreads(gpuImageSample->width()/2, gpuImageSample->height());
+		cl::NDRange globalThreads(gpuImageSample->width(), gpuImageSample->height());
 
 		status=m_openCLComandQueue.enqueueNDRangeKernel(m_kernel, cl::NullRange, globalThreads, cl::NullRange, &sampleEvents[i], &kernelEvents[i]);
 	}

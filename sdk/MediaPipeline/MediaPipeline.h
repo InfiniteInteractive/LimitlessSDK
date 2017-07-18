@@ -70,7 +70,7 @@ typedef boost::shared_ptr<SourceFilterDetail> SharedSourceFilterDetail;
 
 struct SampleBin
 {
-	SampleBin():inUse(false), samplesInUse(0), maxBuffer(10){}
+	SampleBin():inUse(false), samplesInUse(0), maxBuffer(20){}
 	~SampleBin(){}
 
 	bool inUse;

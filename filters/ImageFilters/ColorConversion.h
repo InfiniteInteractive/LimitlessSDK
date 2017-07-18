@@ -34,6 +34,7 @@ public:
 
 	static std::string toString(Type type);
 	static Type toType(std::string type);
+    static bool encoded(Type type);
 
 private:
 	static ColorFormatMap &ColorFormat::getFormatMap();
@@ -95,6 +96,7 @@ private:
 	cl::CommandQueue m_openCLComandQueue;
 
     std::vector<Limitless::GpuBufferSample> m_gpuCopyBuffers;
+    std::vector<Limitless::GpuImageSample> m_gpuCopyImages;
 
 	size_t m_kernelWorkGroupSize;
 	size_t m_blockSizeX;

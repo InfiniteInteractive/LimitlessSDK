@@ -8,6 +8,12 @@
 namespace cvlib
 {
 
+enum class Direction
+{
+    X,
+    Y
+};
+
 ///
 /// Convolves to matrices
 ///

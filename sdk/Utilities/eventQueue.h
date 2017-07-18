@@ -100,20 +100,24 @@ public:
 
 	_Type pop_back()
 	{
-		std::unique_lock<std::mutex> lock(m_queuMutex);
+        {
+            std::unique_lock<std::mutex> lock(m_queuMutex);
 
-		m_breakWait=false;
-		while(m_queue.empty())
-		{
-			m_conditionVariable.wait(lock);
+            m_breakWait=false;
+            while(m_queue.empty())
+            {
+                m_conditionVariable.wait(lock);
 
-			if(m_breakWait)
-				return _Type();
-		}
+                if(m_breakWait)
+                    return _Type();
+            }
 
-		_Type value=m_queue.back();
+            _Type value=m_queue.back();
 
-		m_queue.pop_back();
+            m_queue.pop_back();
+        }
+
+        m_conditionVariable.notify_all();
 		return value;
 	}
 
@@ -166,6 +170,7 @@ public:
         _Type value=m_queue.front();
 
         m_queue.pop_front();
+        m_conditionVariable.notify_all();
         return value;
     }
 

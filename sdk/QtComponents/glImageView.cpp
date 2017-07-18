@@ -269,29 +269,29 @@ bool GLImageView::initialize()
 
 	m_textureType=GL_TEXTURE_2D;
 
-    glGenTextures(1, &m_logoTextureID);
-
-    cvlib::SimpleImage image;
-    cvlib::loadPng(image, "D:/projects/IIM/LimitlessSDK/resources/logo_92.png");
-
-    m_logoWidth=image.width;
-    m_logoHeight=image.height;
-
-    glBindTexture(m_textureType, m_logoTextureID);
-    glTexParameteri(m_textureType, GL_TEXTURE_BASE_LEVEL, 0);
-    glTexParameteri(m_textureType, GL_TEXTURE_MAX_LEVEL, 0);
-    glTexParameteri(m_textureType, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(m_textureType, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(m_textureType, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(m_textureType, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-    GLenum format;
-    if(image.format==cvlib::ImageFormat::Rgb)
-        format=GL_RGB_INTEGER;
-    else if(image.format==cvlib::ImageFormat::Rgba)
-        format=GL_RGBA_INTEGER;
-    glTexImage2D(m_textureType, 0, GL_RGBA8UI, image.width, image.height, 0, format, GL_UNSIGNED_BYTE, image.data);
-    glBindTexture(m_textureType, 0);
+//    glGenTextures(1, &m_logoTextureID);
+//
+//    cvlib::SimpleImage image;
+//    cvlib::loadPng(image, "D:/projects/IIM/LimitlessSDK/resources/logo_92.png");
+//
+//    m_logoWidth=image.width;
+//    m_logoHeight=image.height;
+//
+//    glBindTexture(m_textureType, m_logoTextureID);
+//    glTexParameteri(m_textureType, GL_TEXTURE_BASE_LEVEL, 0);
+//    glTexParameteri(m_textureType, GL_TEXTURE_MAX_LEVEL, 0);
+//    glTexParameteri(m_textureType, GL_TEXTURE_WRAP_S, GL_REPEAT);
+//    glTexParameteri(m_textureType, GL_TEXTURE_WRAP_T, GL_REPEAT);
+//    glTexParameteri(m_textureType, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+//    glTexParameteri(m_textureType, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//
+//    GLenum format;
+//    if(image.format==cvlib::ImageFormat::Rgb)
+//        format=GL_RGB_INTEGER;
+//    else if(image.format==cvlib::ImageFormat::Rgba)
+//        format=GL_RGBA_INTEGER;
+//    glTexImage2D(m_textureType, 0, GL_RGBA8UI, image.width, image.height, 0, format, GL_UNSIGNED_BYTE, image.data);
+//    glBindTexture(m_textureType, 0);
 
 	GLboolean textureSet;
 	glGetBooleanv(m_textureType, &textureSet);
@@ -719,31 +719,31 @@ void GLImageView::draw()
         }
         else //logo
         {
-            m_program.use();
-
-            if((m_logoWidth!=m_currentImageWidth)||(m_logoHeight!=m_currentImageHeight))
-            {
-                m_currentImageWidth=m_logoWidth;
-                m_currentImageHeight=m_logoHeight;
-                m_centerPosX=(float)m_currentImageWidth/2.0f;
-                m_centerPosY=(float)(float)m_currentImageHeight/2.0f;
-                m_imagePosUniform->uniform("image")=glm::ivec2(m_currentImageWidth, m_currentImageHeight);
-                m_imagePosUniform->uniform("center")=glm::vec2(m_centerPosX, m_centerPosY);
-            }
-
-            m_imagePosUniform->bind();
-            assert(checkErrorGL());
-
-            glActiveTexture(GL_TEXTURE0);
-            assert(checkErrorGL());
-
-            glUniform1i(m_textureSamplerID, 0);
-
-            glBindVertexArray(m_vertexArrayID);
-            glBindTexture(m_textureType, m_logoTextureID);
-            
-            glDrawArrays(GL_TRIANGLES, 0, 6); // 3 indices starting at 0 -> 1 triangle
-            assert(checkErrorGL());
+//            m_program.use();
+//
+//            if((m_logoWidth!=m_currentImageWidth)||(m_logoHeight!=m_currentImageHeight))
+//            {
+//                m_currentImageWidth=m_logoWidth;
+//                m_currentImageHeight=m_logoHeight;
+//                m_centerPosX=(float)m_currentImageWidth/2.0f;
+//                m_centerPosY=(float)(float)m_currentImageHeight/2.0f;
+//                m_imagePosUniform->uniform("image")=glm::ivec2(m_currentImageWidth, m_currentImageHeight);
+//                m_imagePosUniform->uniform("center")=glm::vec2(m_centerPosX, m_centerPosY);
+//            }
+//
+//            m_imagePosUniform->bind();
+//            assert(checkErrorGL());
+//
+//            glActiveTexture(GL_TEXTURE0);
+//            assert(checkErrorGL());
+//
+//            glUniform1i(m_textureSamplerID, 0);
+//
+//            glBindVertexArray(m_vertexArrayID);
+//            glBindTexture(m_textureType, m_logoTextureID);
+//            
+//            glDrawArrays(GL_TRIANGLES, 0, 6); // 3 indices starting at 0 -> 1 triangle
+//            assert(checkErrorGL());
         }
 	}
 		

@@ -6,7 +6,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-
+#include <cassert>
 
 namespace cvlib{namespace cl
 {
@@ -39,7 +39,7 @@ typedef std::unordered_map<cl_context, ProgramMap> ContextProgramMap;
 
     if(error!=CL_SUCCESS)
     {
-        if(error==CL_BUILD_PROGRAM_FAILURE)
+        if((error==CL_BUILD_PROGRAM_FAILURE) ||(error==CL_INVALID_BINARY))
         {
             std::string str=program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices[0]);
 
@@ -48,8 +48,23 @@ typedef std::unordered_map<cl_context, ProgramMap> ContextProgramMap;
             std::cout<<str;
             std::cout<<" ************************************************"<<std::endl;
 
+            if(error==CL_INVALID_BINARY)
+            {
+                std::vector<char *> programBinaries=program.getInfo<CL_PROGRAM_BINARIES>();
+
+                std::cout<<std::endl<<" BINARY LOG: "<<name<<std::endl;
+                std::cout<<" ************************************************"<<std::endl;
+                for(size_t i=0; i<programBinaries.size(); ++i)
+                    std::cout<<programBinaries[i];
+                std::cout<<" ************************************************"<<std::endl;
+
+            }
+
+            assert(false);
             return false;
         }
+        assert(false);
+        return false;
     }
 
     programs.insert({name, program});
@@ -63,6 +78,7 @@ typedef std::unordered_map<cl_context, ProgramMap> ContextProgramMap;
     if(kernelInfo)
         return kernelInfo->kernel;
 
+    assert(false);
     return ::cl::Kernel();
 }
 
@@ -83,7 +99,9 @@ SharedKernelInfo getKernelInfo(::cl::Context &context, std::string kernelName, s
     context.getInfo(CL_CONTEXT_DEVICES, &devices);
 
     cl_int error;
+    
     kernelInfo->kernel=::cl::Kernel(program, kernelName.c_str(), &error);
+    assert(error==CL_SUCCESS);
 
     kernelInfo->kernel.getWorkGroupInfo(devices[0], CL_KERNEL_WORK_GROUP_SIZE, &kernelInfo->workGroupSize);
     kernelInfo->kernel.getWorkGroupInfo(devices[0], CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, &kernelInfo->preferredWorkGroupMultiple);

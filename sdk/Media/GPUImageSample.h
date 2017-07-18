@@ -47,7 +47,7 @@ public:
 	bool read(unsigned char *buffer, unsigned int width, unsigned int height, cl::Event &event, std::vector<cl::Event> *events=nullptr);
 	bool copy(GpuImageSample *sample, cl::Event &event, std::vector<cl::Event> *waitEvents=nullptr);
 
-	bool resize(unsigned int width, unsigned int height, unsigned int channles=3, unsigned int channelBits=8);
+	bool resize(unsigned int width, unsigned int height, unsigned int channles=3, unsigned int channelBits=8, bool inDrawThread=false);
 
 	GLuint texture() { return m_texture; }
 	cl::ImageGL glImage(){return m_image;}

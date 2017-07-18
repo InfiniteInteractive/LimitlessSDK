@@ -2,75 +2,39 @@
 #define _cvlib_convolve_cl_h_
 
 #include "cvlib/cvlibDefine.h"
+#include "cvlib/convolve.h"
+
 #include "CL/cl.hpp"
 
 namespace cvlib{namespace cl
 {
-///
-/// Performs convolution on serparable kernels
-///
-cvlib_EXPORT void separableConvolve(::cl::Context context, ::cl::CommandQueue commandQueue, ::cl::Image2D &src, ::cl::Buffer kernelX, int kernelXSize, ::cl::Buffer kernelY, int kernelYSize, ::cl::Image2D &dst);
 
-cvlib_EXPORT void separableConvolve(::cl::Context context, ::cl::CommandQueue commandQueue, ::cl::Image2D &src, size_t width, size_t height, ::cl::Buffer kernelXBuffer, int kernelXSize,
-    ::cl::Buffer kernelYBuffer, int kernelYSize, float scale, ::cl::Image2D &dst, ::cl::Image2D &scratch, std::vector<::cl::Event> *events, ::cl::Event &event);
-cvlib_EXPORT void separableConvolve(::cl::Context context, ::cl::CommandQueue commandQueue, ::cl::Image2D &src, size_t width, size_t height, ::cl::Buffer kernelXBuffer, int kernelXSize,
-    ::cl::Buffer kernelYBuffer, int kernelYSize, float scale, ::cl::Buffer &dst, size_t offset, ::cl::Image2D &scratch, std::vector<::cl::Event> *events, ::cl::Event &event);
-cvlib_EXPORT void separableConvolve(::cl::Context context, ::cl::CommandQueue commandQueue, ::cl::Buffer &src, size_t srcOffset, size_t width, size_t height, ::cl::Buffer kernelXBuffer, int kernelXSize,
-    ::cl::Buffer kernelYBuffer, int kernelYSize, float scale, ::cl::Buffer &dst, size_t dstOffset, ::cl::Buffer &scratch, std::vector<::cl::Event> *events, ::cl::Event &event);
-
-//Performs convolve in 2 seperate kernels using local memory for image storage
-cvlib_EXPORT void separableConvolve_local(::cl::Context context, ::cl::CommandQueue commandQueue, ::cl::Image2D &src, size_t width, size_t height, ::cl::Buffer kernelXBuffer, int kernelXSize,
-    ::cl::Buffer kernelYBuffer, int kernelYSize, float scale, ::cl::Image2D &dst, ::cl::Image2D &scratch, std::vector<::cl::Event> *events, ::cl::Event &event);
-
-//Performs convolve in single kernel using local memory for image storage
-cvlib_EXPORT void separableConvolve_localXY(::cl::Context context, ::cl::CommandQueue commandQueue, ::cl::Image2D &src, size_t width, size_t height, ::cl::Buffer kernelXBuffer, ::cl::Buffer kernelYBuffer,
-    int kernelSize, float scale, ::cl::Image2D &dst, std::vector<::cl::Event> *events, ::cl::Event &event);
-///
-/// Constructs guassian kernel and copies it to a cl::Buffer object that is retuned.
-///
-cvlib_EXPORT::cl::Buffer buildGaussianKernel(::cl::Context context, ::cl::CommandQueue commandQueue, float sigma, int &filterSize);
-
-///
-/// Performs guassian convolution, will be cl::Buffer internally
-///
-cvlib_EXPORT void gaussianConvolution(::cl::Context context, ::cl::CommandQueue commandQueue, ::cl::Image2D &src, ::cl::Image2D &dst, size_t width, size_t height, float sigma, std::vector<::cl::Event> *events, ::cl::Event &event);
-
-///
-/// Construct guassian kernel as 2 kernels that work on the x/y direction.
-///
-cvlib_EXPORT::cl::Buffer buildGaussianSeparableKernel(::cl::Context context, float sigma, int &filterSize);
-
-///
-///
-///
-cvlib_EXPORT void gaussianSeparable(::cl::Context context, ::cl::CommandQueue commandQueue, ::cl::Image2D &src, ::cl::Image2D &dst, size_t width, size_t height, float sigma, std::vector<::cl::Event> *events, ::cl::Event &event);
-cvlib_EXPORT void gaussianSeparable(::cl::Context context, ::cl::CommandQueue commandQueue, ::cl::Image2D &src, ::cl::Image2D &dst, size_t width, size_t height, ::cl::Buffer kernelBuffer, int kernelSize, ::cl::Image2D scratch,
-    std::vector<::cl::Event> *events, ::cl::Event &event);
-cvlib_EXPORT void gaussianSeparable(::cl::Context context, ::cl::CommandQueue commandQueue, ::cl::Image2D &src, ::cl::Image2D &dst, size_t width, size_t height, ::cl::Buffer kernelBuffer, int kernelSize,
-    std::vector<::cl::Event> *events, ::cl::Event &event);
-
-struct cvlib_EXPORT ScharrSeparableKernel
+struct cvlib_EXPORT Kernel
 {
-    ::cl::Buffer smooth;
-    ::cl::Buffer edge;
+    ::cl::Buffer kernel;
+    int size;
+};
+
+struct cvlib_EXPORT SeparableKernel
+{
+    ::cl::Buffer kernel1;
+    ::cl::Buffer kernel2;
+    int size;
 };
 
 ///
+/// Performs convolution on serparable kernels
 ///
-///
-cvlib_EXPORT ScharrSeparableKernel buildScharrSeparableKernel(::cl::Context context, int scale, int &kernelSize, bool normalize);
-
-///
-///
-///
-cvlib_EXPORT void scharrSeparable(::cl::Context context, ::cl::CommandQueue commandQueue, ::cl::Image2D &src, size_t width, size_t height, int size, float scale, bool yKernel, bool normalize, ::cl::Image2D &dst, std::vector<::cl::Event> *events, ::cl::Event &event);
-cvlib_EXPORT void scharrSeparable(::cl::Context context, ::cl::CommandQueue commandQueue, ::cl::Image2D &src, size_t width, size_t height, int size, float scale, bool yKernel, bool normalize, ::cl::Image2D &dst,
-    ScharrSeparableKernel &kernelBuffer, int kernelSize, ::cl::Image2D scratch, std::vector<::cl::Event> *events, ::cl::Event &event);
-
-cvlib_EXPORT void scharrSeparable(::cl::Context context, ::cl::CommandQueue commandQueue, ::cl::Image2D &src, size_t width, size_t height, int size, float scale, bool yKernel, bool normalize, ::cl::Buffer &dst, size_t offset,
-    std::vector<::cl::Event> *events, ::cl::Event &event);
-cvlib_EXPORT void scharrSeparable(::cl::Context context, ::cl::CommandQueue commandQueue, ::cl::Buffer &src, size_t srcOffset, size_t width, size_t height, int size, float scale, bool yKernel, bool normalize,
-    ::cl::Buffer &dst, size_t dstOffset, std::vector<::cl::Event> *events, ::cl::Event &event);
+cvlib_EXPORT void separableConvolve(::cl::Context &context, ::cl::CommandQueue &commandQueue, ::cl::Image &src, ::cl::Image &dst, SeparableKernel &kernel, float scale=1.0,
+    std::vector<::cl::Event> *events=nullptr, ::cl::Event *event=nullptr);
+cvlib_EXPORT void separableConvolve(::cl::Context &context, ::cl::CommandQueue &commandQueue, ::cl::Image &src, int width, int height, ::cl::Image &dst, SeparableKernel &kernel, float scale=1.0,
+    std::vector<::cl::Event> *events=nullptr, ::cl::Event *event=nullptr);
+cvlib_EXPORT void separableConvolve(::cl::Context &context, ::cl::CommandQueue &commandQueue, ::cl::Image &src, int width, int height, ::cl::Image &dst, ::cl::Image &scratch,
+    SeparableKernel &kernel, float scale=1.0f, std::vector<::cl::Event> *events=nullptr, ::cl::Event *event=nullptr);
+cvlib_EXPORT void separableConvolve(::cl::Context &context, ::cl::CommandQueue &commandQueue, ::cl::Image &src, int width, int height,  ::cl::Image &dst, ::cl::Image &scratch,
+    ::cl::Buffer &kernelXBuffer, int kernelXSize, ::cl::Buffer &kernelYBuffer, int kernelYSize, float scale=1.0f, std::vector<::cl::Event> *events=nullptr, ::cl::Event *event=nullptr);
+cvlib_EXPORT void separableConvolve_local(::cl::Context &context, ::cl::CommandQueue &commandQueue, ::cl::Image &src, int width, int height, ::cl::Image &dst, ::cl::Image &scratch,
+    ::cl::Buffer &kernelXBuffer, int kernelXSize, ::cl::Buffer &kernelYBuffer, int kernelYSize, float scale=1.0f, std::vector<::cl::Event> *events=nullptr, ::cl::Event *event=nullptr);
 
 }}//namespace cvlib::cl
 

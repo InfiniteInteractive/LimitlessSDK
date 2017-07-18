@@ -61,27 +61,13 @@ unsigned char *GpuImageSample::buffer()
 	return m_hostBuffer.data();
 }
 
-bool GpuImageSample::resize(unsigned int width, unsigned int height, unsigned int channels, unsigned int channelBits)
+bool GpuImageSample::resize(unsigned int width, unsigned int height, unsigned int channels, unsigned int channelBits, bool inDrawThread)
 {
 	cl_int error = CL_SUCCESS;
 
 	if((width == 0) || (height == 0))
 		return false;
 
-//	GPUContext::makeOpenGLCurrent();
-//
-//	if(m_texture == 0)
-//		glGenTextures(1, &m_texture);
-//
-//	glBindTexture(GL_TEXTURE_2D, m_texture);
-//	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8UI, width, height, 0, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, NULL); 
-//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
-//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//	glBindTexture(GL_TEXTURE_2D, 0);
-//
-//	glFinish();
 	bool createTexture=false;
 
 	if(m_texture==0)
@@ -114,11 +100,23 @@ bool GpuImageSample::resize(unsigned int width, unsigned int height, unsigned in
             format=GL_RGBA_INTEGER;
             break;
         }
-        m_texture=GPUContext::createTexture(GL_TEXTURE_2D, internalFormat, width, height, format, GL_UNSIGNED_BYTE);
-        //	}
-        //
-        //    if(createTexture || (width!=m_width)||(height!=m_height))
-        //    {
+
+        if(inDrawThread)
+        {
+            //we are inside the draw thread so it can be created here
+            glGenTextures(1, &m_texture);
+
+            glBindTexture(GL_TEXTURE_2D, m_texture);
+            glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+        else
+            m_texture=GPUContext::createTexture(GL_TEXTURE_2D, internalFormat, width, height, format, GL_UNSIGNED_BYTE);
+
         m_image=cl::ImageGL(GPUContext::openCLContext(), m_flags, GL_TEXTURE_2D, 0, m_texture, &error);
 
 #ifdef DEBUG_OWNER
