@@ -13,6 +13,15 @@
 #include <unordered_map>
 
 
+struct ColorKernelInfo
+{
+    ColorKernelInfo(std::string name, int divisorX=1, int divisorY=1):name(name), divisorX(divisorX), divisorY(divisorY) {}
+
+    std::string name;
+    int divisorX;
+    int divisorY;
+};
+
 class ColorFormat
 {
 public:
@@ -68,13 +77,13 @@ protected:
 //PluginObject interfacce
 	virtual void onAttributeChanged(std::string name, Limitless::SharedAttribute attribute);
 
-	typedef std::unordered_map<ColorFormat::Type, std::string> TypeKernelMap;
+	typedef std::unordered_map<ColorFormat::Type, ColorKernelInfo> TypeKernelMap;
 	typedef std::unordered_map<ColorFormat::Type, TypeKernelMap> KernelNameMap;
 
 	void initOpenCL();
 
 private:
-	std::string getKernelName(ColorFormat::Type from, ColorFormat::Type to);
+    ColorKernelInfo getKernelName(ColorFormat::Type from, ColorFormat::Type to);
 	KernelNameMap m_kernelMap;
 
     bool m_passThrough;
@@ -101,7 +110,10 @@ private:
 	size_t m_kernelWorkGroupSize;
 	size_t m_blockSizeX;
 	size_t m_blockSizeY;
-	cl::Kernel m_kernel;
+	
+    cl::Kernel m_kernel;
+    int m_kernerlDivisorX;
+    int m_kernerlDivisorY;
 };
 
 #endif //_ColorConversion_h_

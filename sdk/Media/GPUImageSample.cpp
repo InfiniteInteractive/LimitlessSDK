@@ -45,8 +45,11 @@ GpuImageSample::~GpuImageSample()
 {
 }
 
-unsigned char *GpuImageSample::buffer()
+unsigned char *GpuImageSample::buffer(size_t index)
 {
+    if(index!=0)
+        return nullptr;
+
 	if(m_hostBuffer.size() == m_size)
 		return m_hostBuffer.data();
 

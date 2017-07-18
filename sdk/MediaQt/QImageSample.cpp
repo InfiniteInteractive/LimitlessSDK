@@ -67,9 +67,9 @@ unsigned int QImageSample::channelBits() const
 	return 0;
 }
 
-unsigned char *QImageSample::buffer()
+unsigned char *QImageSample::buffer(size_t index)
 {
-	return NULL;
+	return nullptr;
 }
 
 size_t QImageSample::size() const

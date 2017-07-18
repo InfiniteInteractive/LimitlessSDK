@@ -28,8 +28,10 @@ public:
     void setEvent(Event event) { m_event=event; }
 
 //MediaSample
-	virtual unsigned char *buffer(){return nullptr;}
-	virtual size_t size() const{return 0;}
+    virtual size_t buffers() { return 0; }
+    virtual unsigned char *buffer(size_t index=0) { return nullptr; }
+    virtual size_t bufferSize(size_t index=0) { return 0; }
+    virtual size_t size() const { return 0; }
 
 private:
     Event m_event;

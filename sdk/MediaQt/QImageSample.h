@@ -28,7 +28,9 @@ public:
 	virtual unsigned int channelBits() const;
 
 //IMediaSample
-	virtual unsigned char *buffer();
+    virtual size_t buffers() { return 1; }
+	virtual unsigned char *buffer(size_t index=0);
+    virtual size_t bufferSize(size_t index=0) { if(index==0) return size(); return 0; }
 	virtual size_t size() const;
 
 	virtual bool save(std::string fileName){return false;}

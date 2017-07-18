@@ -30,6 +30,7 @@ public:
 
 	void resize(size_t size);
 	bool write(unsigned char *buffer, size_t size, cl::Event &event);
+    bool write(std::vector<unsigned char *>buffers, std::vector<size_t> sizes, cl::Event &event);
 	bool read(unsigned char *buffer, size_t size, cl::Event &event);
 
 	GLuint texture(){return m_texture;}
@@ -41,7 +42,9 @@ public:
     bool releaseOpenCl(cl::Event &event, std::vector<cl::Event> *waitEvents=nullptr);
 
 	//MediaSample
-	virtual unsigned char *buffer();
+    virtual size_t buffers() { return 1; }
+	virtual unsigned char *buffer(size_t index=0);
+    virtual size_t bufferSize(size_t index=0) { if(index==0) return size(); return 0; }
 	virtual size_t size() const{return m_size;}
 	virtual size_t actualSize() const{return m_actualSize;}
 

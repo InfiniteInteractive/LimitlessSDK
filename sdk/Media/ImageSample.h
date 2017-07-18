@@ -19,9 +19,11 @@ public:
 	virtual ~ImageSample();
 
 //MediaSample
-	virtual unsigned char *buffer() const{return m_buffer;}
-	virtual unsigned char *buffer() { return m_buffer; }
-	virtual size_t size() const{return m_size;}
+    virtual size_t buffers() { return 1; }
+    virtual unsigned char *buffer(size_t index=0) const { if(index==0) return m_buffer; return nullptr; }
+    virtual unsigned char *buffer(size_t index=0) { if(index==0) return m_buffer; return nullptr; }
+    virtual size_t bufferSize(size_t index=0) { if(index==0) return m_size; return 0; }
+    virtual size_t size() const { return m_size;}
 
 //IImageSample
 	virtual std::string imageFormat() const{return m_imageFormat;}

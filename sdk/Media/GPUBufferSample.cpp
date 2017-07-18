@@ -94,6 +94,63 @@ bool GpuBufferSample::write(unsigned char *buffer, size_t size, cl::Event &event
     return true;
 }
 
+bool GpuBufferSample::write(std::vector<unsigned char *>buffers, std::vector<size_t> sizes, cl::Event &event)
+{
+    size_t totalSize=0;
+
+    for(size_t &size:sizes)
+        totalSize+=size;
+
+    if(totalSize==0)
+        return false;
+
+    m_hostBuffer.clear();
+    if(m_size!=totalSize)
+    {
+        cl_int error=CL_SUCCESS;
+
+        m_buffer=cl::BufferGL(GPUContext::openCLContext(), m_flags, m_texture, &error);
+        m_size=totalSize;
+    }
+
+    cl::Event acquireEvent;
+
+    if(acquireOpenCl(acquireEvent))
+        acquireEvent.wait();
+
+    cl_int status;
+
+    std::vector<cl::Event> prevEvent(1);
+    size_t pos=0;
+
+    status=GPUContext::openCLCommandQueue().enqueueWriteBuffer(m_buffer, CL_FALSE, pos, sizes[0], buffers[0], NULL, &prevEvent[0]);
+    pos+=sizes[0];
+
+    if(status==CL_SUCCESS)
+    {
+        for(size_t i=1; i<buffers.size(); ++i)
+        {
+            cl::Event loopEvent;
+
+            status=GPUContext::openCLCommandQueue().enqueueWriteBuffer(m_buffer, CL_FALSE, pos, sizes[i], buffers[i], &prevEvent, &loopEvent);
+            pos+=sizes[i];
+            prevEvent[0]=loopEvent;
+
+            if(status!=CL_SUCCESS)
+                break;
+        }
+        event=prevEvent[0];
+    }
+
+    if(status!=CL_SUCCESS)
+    {
+        return false;
+        assert(false);
+    }
+
+    return true;
+}
+
 bool GpuBufferSample::read(unsigned char *buffer, size_t size, cl::Event &event)
 {
     if(size==0)
@@ -116,8 +173,11 @@ bool GpuBufferSample::read(unsigned char *buffer, size_t size, cl::Event &event)
     return true;
 }
 
-unsigned char *GpuBufferSample::buffer()
+unsigned char *GpuBufferSample::buffer(size_t index)
 {
+    if(index!=0)
+        return nullptr;
+
     if(m_hostBuffer.size()==m_size)
         return m_hostBuffer.data();
 

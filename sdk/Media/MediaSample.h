@@ -42,7 +42,9 @@ public:
 	virtual void copyHeader(boost::shared_ptr<MediaSample> sample);
 	virtual void copyHeader(boost::shared_ptr<MediaSample> sample, std::string filterName);
 
-	virtual unsigned char *buffer()=0;
+    virtual size_t buffers()=0;
+	virtual unsigned char *buffer(size_t index=0)=0;
+    virtual size_t bufferSize(size_t index=0)=0;
 	virtual size_t size() const=0;
 
 	virtual MediaTime timestamp() const{return m_timestamp;}

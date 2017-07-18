@@ -27,7 +27,9 @@ public:
 //	virtual Limitless::MediaTime sourceTimestamp() const{return m_packet.pts;}
 
 //MediaSample
-	virtual unsigned char *buffer();
+    virtual size_t buffers() { return 1; }
+	virtual unsigned char *buffer(size_t index=0);
+    virtual size_t bufferSize(size_t index=0) { if(index==0) return size(); return 0; }
 	virtual size_t size() const;
 	virtual size_t actualSize() const;
 

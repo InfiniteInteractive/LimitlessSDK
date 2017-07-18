@@ -11,9 +11,18 @@ FfmpegAudioSample::~FfmpegAudioSample()
 	av_frame_free(&m_frame);
 }
 
-unsigned char *FfmpegAudioSample::buffer()
+unsigned char *FfmpegAudioSample::buffer(size_t index)
 {
-	return m_frame->data[0];
+    if(index == 0)
+	    return m_frame->data[0];
+    return nullptr;
+}
+
+size_t FfmpegAudioSample::bufferSize(size_t index)
+{
+    if(index==0)
+        return size();
+    return 0;
 }
 
 size_t FfmpegAudioSample::size() const

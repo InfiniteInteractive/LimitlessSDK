@@ -89,7 +89,7 @@ m_hasCommandQueue(false)
 {
 	TypeKernelMap typeYUV422Map;
 
-    typeYUV422Map.insert(TypeKernelMap::value_type(ColorFormat::Type::RGB8, "yuv422torgb"));
+    typeYUV422Map.insert(TypeKernelMap::value_type(ColorFormat::Type::RGB8, ColorKernelInfo("yuv422torgb", 2, 1)));
 	m_kernelMap.insert(KernelNameMap::value_type(ColorFormat::Type::YUV422, typeYUV422Map));
     
 //    TypeKernelMap typeYUV420Map;
@@ -99,22 +99,22 @@ m_hasCommandQueue(false)
 
     TypeKernelMap typeYUV420PMap;
     
-    typeYUV420PMap.insert(TypeKernelMap::value_type(ColorFormat::Type::RGB8, "yuv420ptorgb"));
+    typeYUV420PMap.insert(TypeKernelMap::value_type(ColorFormat::Type::RGB8, ColorKernelInfo("yuv420ptorgb", 2, 2)));
     m_kernelMap.insert(KernelNameMap::value_type(ColorFormat::Type::YUV420P, typeYUV420PMap));
 
     TypeKernelMap typeYUVJ420PMap;
 
-    typeYUVJ420PMap.insert(TypeKernelMap::value_type(ColorFormat::Type::RGB8, "yuvj420ptorgb"));
+    typeYUVJ420PMap.insert(TypeKernelMap::value_type(ColorFormat::Type::RGB8, ColorKernelInfo("yuvj420ptorgb", 2, 2)));
     m_kernelMap.insert(KernelNameMap::value_type(ColorFormat::Type::YUVJ420P, typeYUVJ420PMap));
 
     TypeKernelMap typeRGBMap;
 
-    typeRGBMap.insert(TypeKernelMap::value_type(ColorFormat::Type::BGR8, "rgbtobgr"));
+    typeRGBMap.insert(TypeKernelMap::value_type(ColorFormat::Type::BGR8, ColorKernelInfo("rgbtobgr")));
     m_kernelMap.insert(KernelNameMap::value_type(ColorFormat::Type::RGB8, typeRGBMap));
 
     TypeKernelMap typeBGRMap;
 
-    typeBGRMap.insert(TypeKernelMap::value_type(ColorFormat::Type::RGB8, "bgrtorgb"));
+    typeBGRMap.insert(TypeKernelMap::value_type(ColorFormat::Type::RGB8, ColorKernelInfo("bgrtorgb")));
     m_kernelMap.insert(KernelNameMap::value_type(ColorFormat::Type::BGR8, typeBGRMap));
 }
 
@@ -325,7 +325,19 @@ bool ColorConversion::processSample(Limitless::SharedMediaPad sinkPad, Limitless
                 std::vector<cl::Event> events(1);
 
                 gpuBufferSample->resize(imageSample->size());
-                gpuBufferSample->write(imageSample->buffer(), imageSample->size(), events[0]);
+
+                size_t bufferCount=imageSample->buffers();
+
+                std::vector<unsigned char *> buffers(bufferCount);
+                std::vector<size_t> sizes(bufferCount);
+
+                for(size_t j=0; j<bufferCount; ++j)
+                {
+                    buffers[j]=imageSample->buffer(j);
+                    sizes[j]=imageSample->bufferSize(j);
+                }
+                gpuBufferSample->write(buffers, sizes, events[0]);
+//                gpuBufferSample->write(imageSample->buffer(), imageSample->size(), events[0]);
                 gpuBuffers.push_back(GpuBuffer(gpuBufferSample, imageSample->width(), imageSample->height()));
                 sampleEvents.push_back(events);
             }
@@ -380,7 +392,7 @@ bool ColorConversion::processSample(Limitless::SharedMediaPad sinkPad, Limitless
         status=m_kernel.setArg(4, (cl_uint)gpuBuffer.width);
         status=m_kernel.setArg(5, (cl_uint)gpuBuffer.height);
 
-        cl::NDRange globalThreads(gpuBuffer.width, gpuBuffer.height);
+        cl::NDRange globalThreads(gpuBuffer.width/m_kernerlDivisorX, gpuBuffer.height/m_kernerlDivisorY);
 
         status=m_openCLComandQueue.enqueueNDRangeKernel(m_kernel, cl::NullRange, globalThreads, cl::NullRange, &sampleEvents[i], &kernelBufferEvents[i]);
     }
@@ -493,16 +505,19 @@ void ColorConversion::initOpenCL()
 				OutputDebugStringA(" ************************************************\n");
 			}
 		}
-		std::string kernelName=getKernelName(m_fromFormat, m_toFormat);
+        ColorKernelInfo kernel=getKernelName(m_fromFormat, m_toFormat);
 
-        if(kernelName=="doNothing")
+        if(kernel.name == "doNothing")
         {
             std::stringstream errorMsg;
             
             errorMsg<<"Conversion not not implemented for "<<ColorFormat::toString(m_fromFormat)<<" to "<<ColorFormat::toString(m_toFormat);
             Log::error("ColorConversion", errorMsg.str());
         }
-		m_kernel=cl::Kernel(program, kernelName.c_str());
+		
+        m_kernel=cl::Kernel(program, kernel.name.c_str());
+        m_kernerlDivisorX=kernel.divisorX;
+        m_kernerlDivisorY=kernel.divisorY;
 
 		m_kernelWorkGroupSize=m_kernel.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(m_openCLDevice);
 
@@ -516,19 +531,19 @@ void ColorConversion::initOpenCL()
 	m_openCLInitialized=true;
 }
 
-std::string ColorConversion::getKernelName(ColorFormat::Type from, ColorFormat::Type to)
+ColorKernelInfo ColorConversion::getKernelName(ColorFormat::Type from, ColorFormat::Type to)
 {
 	KernelNameMap::iterator iterKernelMap=m_kernelMap.find(from);
 
 	if(iterKernelMap == m_kernelMap.end())
-		return "doNothing";
+		return ColorKernelInfo("doNothing");
 
 	TypeKernelMap &typeKernelMap=iterKernelMap->second;
 
 	TypeKernelMap::iterator iterTypeKernelMap=typeKernelMap.find(to);
 	
 	if(iterTypeKernelMap == typeKernelMap.end())
-		return "doNothing";
+		return ColorKernelInfo("doNothing");
 
 	return iterTypeKernelMap->second;
 }

@@ -16,9 +16,11 @@ FfmpegPacketSample::~FfmpegPacketSample()
 
 }
 
-unsigned char *FfmpegPacketSample::buffer()
+unsigned char *FfmpegPacketSample::buffer(size_t index)
 {
-	return m_packet.data;
+    if(index == 0)
+	    return m_packet.data;
+    return nullptr;
 }
 
 size_t FfmpegPacketSample::size() const

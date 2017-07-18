@@ -49,6 +49,7 @@ set(ffmpeg_Sources
 	ffmpegResources.cpp
 	ffmpegSwScale.cpp
 	formatDescription.cpp
+    pixelFormatDescription.cpp
 )
 
 set(ffmpeg_Headers
@@ -67,6 +68,7 @@ set(ffmpeg_Headers
 	ffmpegResources.h
 	ffmpegSwScale.h
 	formatDescription.h
+    pixelFormatDescription.h
 )
 
 set(ffmpeg_Libraries
