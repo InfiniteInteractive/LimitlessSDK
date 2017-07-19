@@ -305,7 +305,8 @@ bool ColorConversion::processSample(Limitless::SharedMediaPad sinkPad, Limitless
 	{
 		IImageSample *imageSample=dynamic_cast<IImageSample *>(sample.get());
 
-		imageSamples.push_back(imageSample);
+        if(ColorFormat::toType(imageSample->imageFormat()) == m_fromFormat)
+		    imageSamples.push_back(imageSample);
 	}
 
 	if(!imageSamples.empty())
@@ -515,6 +516,7 @@ void ColorConversion::initOpenCL()
             Log::error("ColorConversion", errorMsg.str());
         }
 		
+        m_kernelName=kernel.name;
         m_kernel=cl::Kernel(program, kernel.name.c_str());
         m_kernerlDivisorX=kernel.divisorX;
         m_kernerlDivisorY=kernel.divisorY;

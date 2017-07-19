@@ -111,6 +111,7 @@ private:
 	size_t m_blockSizeX;
 	size_t m_blockSizeY;
 	
+    std::string m_kernelName;
     cl::Kernel m_kernel;
     int m_kernerlDivisorX;
     int m_kernerlDivisorY;
